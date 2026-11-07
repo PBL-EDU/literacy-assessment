@@ -144,7 +144,7 @@ npm run test:smoke   # 用 mock 的 obsidian 模块加载 main.js
 - [需求列表](docs/需求列表.md)
 - [架构说明](docs/架构说明.md)
 - [使用指南](docs/使用指南.md)
-- [0.2.1 UI 与报告设计](docs/UI与报告设计-0.2.2.md)
+- [0.2.2 UI 与报告设计](docs/UI与报告设计-0.2.2.md)
 - [变更记录](CHANGELOG.md)
 - [发布到 GitHub 与 Obsidian 市场](docs/发布到GitHub与Obsidian市场.md)
 - [得到大脑录音接入](docs/得到接入.md)
