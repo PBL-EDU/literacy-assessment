@@ -1,0 +1,12 @@
+node_modules/
+dist/
+demo-vault/
+design/
+docs/提示词/
+docs/提示词系统与商业化.md
+test/integ-debug.cjs
+test/.build/
+main.js
+*.log
+*.zip
+.DS_Store

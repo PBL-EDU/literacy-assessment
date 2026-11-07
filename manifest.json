@@ -1,0 +1,11 @@
+﻿{
+  "id": "literacy-assessment",
+  "name": "素养评估",
+  "version": "0.2.1",
+  "minAppVersion": "1.4.0",
+  "description": "本地优先的素养评估工作台：按项目/行动收素材，AI 整理证据，生成行动、项目与学期总报告，并支持对外脱敏版。",
+  "author": "denghao",
+  "authorUrl": "https://github.com/PBL-EDU",
+  "isDesktopOnly": true
+}
+

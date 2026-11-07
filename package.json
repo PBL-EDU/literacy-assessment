@@ -1,0 +1,33 @@
+﻿{
+  "name": "literacy-assessment",
+  "version": "0.2.1",
+  "description": "Local-first literacy assessment workbench for educators: collect activity materials, organize them with AI, and generate evidence-based growth reports.",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "node esbuild.config.mjs production",
+    "typecheck": "tsc --noEmit",
+    "test": "node test/run.cjs",
+    "test:asr": "node test/asr.cjs",
+    "test:getnote": "node test/getnote.cjs",
+    "test:smoke": "node test/smoke.cjs",
+    "verify": "npm run typecheck && npm run build && npm run test && npm run test:asr && npm run test:getnote && npm run test:smoke"
+  },
+  "keywords": [
+    "obsidian",
+    "assessment",
+    "education",
+    "literacy",
+    "ai"
+  ],
+  "author": "denghao",
+  "license": "SEE LICENSE IN LICENSE",
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "esbuild": "^0.25.0",
+    "obsidian": "^1.4.11",
+    "tslib": "^2.6.2",
+    "typescript": "^5.4.5"
+  }
+}
+

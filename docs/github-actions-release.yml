@@ -1,0 +1,45 @@
+name: Release Obsidian plugin
+
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify tag matches manifest
+        run: |
+          node -e "const m=require('./manifest.json'); const tag=process.env.GITHUB_REF_NAME; if(tag!==m.version){console.error('Tag '+tag+' must equal manifest version '+m.version); process.exit(1)}"
+
+      - name: Build and test
+        run: npm run verify
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "素养评估 ${{ github.ref_name }}"
+          body_path: CHANGELOG.md
+          files: |
+            main.js
+            manifest.json
+            styles.css
+            LICENSE
+          draft: false
+          prerelease: false
