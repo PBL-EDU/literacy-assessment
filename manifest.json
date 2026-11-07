@@ -1,7 +1,7 @@
 {
   "id": "literacy-assessment",
   "name": "Literacy Teacher Workbench",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "minAppVersion": "1.6.0",
   "description": "A local-first literacy assessment workbench for project-based learning: collect action evidence, generate action, project, and term reports, and export redacted public versions.",
   "author": "denghao",

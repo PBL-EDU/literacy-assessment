@@ -171,7 +171,7 @@ export default class LiteracyAssessmentPlugin extends Plugin {
       }
       await leaf.setViewState({ type: LITERACY_VIEW_TYPE, active: true });
     }
-    await workspace.revealLeaf(leaf);
+    workspace.setActiveLeaf(leaf, { focus: true });
   }
 
   refreshViews(): void {

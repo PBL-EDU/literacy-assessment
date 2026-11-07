@@ -460,7 +460,7 @@ export class LiteracySettingTab extends PluginSettingTab {
     new Setting(containerEl).setName("关于").setHeading();
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "素养评估 v0.2.6 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
+      text: "素养评估 v0.2.7 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
     });
     containerEl.createEl("p", {
       cls: "setting-item-description",
