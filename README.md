@@ -72,7 +72,9 @@ npm run build
 
 在 Obsidian 设置 → 第三方插件里启用「素养评估」。
 
-想先试一下：从 GitHub Releases 下载 `main.js`、`manifest.json`、`styles.css`，放入插件目录；或使用 zip 安装包。不要把测试用的学生素材库提交到本仓库。
+想先试一下：从 [GitHub Releases](https://github.com/PBL-EDU/literacy-assessment/releases/tag/0.2.1) 下载 `main.js`、`manifest.json`、`styles.css`，放入插件目录；或使用 zip 安装包。不要把测试用的学生素材库提交到本仓库。
+
+BRAT 用户添加仓库 `PBL-EDU/literacy-assessment`，选择 `0.2.1` 即可。
 
 ## 快速上手
 
