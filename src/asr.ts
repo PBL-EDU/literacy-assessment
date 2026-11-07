@@ -2,7 +2,6 @@
  * 语音/视频转写：OpenAI 兼容 /audio/transcriptions，multipart 直传。
  * 桌面端使用 Node http/https，避开浏览器 CORS 与 requestUrl 的 body 限制。
  */
-import * as fs from "fs";
 import * as http from "http";
 import * as https from "https";
 import { URL } from "url";
@@ -159,21 +158,20 @@ function parseResult(body: Buffer, model: string): TranscriptResult {
 
 async function attempt(
   settings: AssessmentSettings,
-  absolutePath: string,
+  fileBuffer: Buffer,
   fileName: string,
   responseFormat: string,
 ): Promise<HttpResponse> {
-  const stat = await fs.promises.stat(absolutePath);
-  if (stat.size > MAX_ASR_BYTES) {
+  const size = fileBuffer.length;
+  if (size > MAX_ASR_BYTES) {
     throw new AsrError(`文件超过 ${MAX_ASR_BYTES / 1024 / 1024} MB，建议先在本地压缩或裁切后再转写。`);
   }
-  if (isOpenAiHost(settings.asrBaseUrl) && stat.size > OPENAI_MAX_BYTES) {
-    const size = (stat.size / 1024 / 1024).toFixed(1);
+  if (isOpenAiHost(settings.asrBaseUrl) && size > OPENAI_MAX_BYTES) {
+    const mb = (size / 1024 / 1024).toFixed(1);
     throw new AsrError(
-      `OpenAI 转写接口单文件上限 25 MB，当前文件约 ${size} MB。请先压缩/切分；或把「得到大脑」等现成转写文字放进 素材/ 或 观察/，直接用文字生成报告。`,
+      `OpenAI 转写接口单文件上限 25 MB，当前文件约 ${mb} MB。请先压缩/切分；或把「得到大脑」等现成转写文字放进 素材/ 或 观察/，直接用文字生成报告。`,
     );
   }
-  const fileBuffer = await fs.promises.readFile(absolutePath);
   if (!fileBuffer.length) throw new AsrError("素材文件是空的。");
   const boundary = `----literacy${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`;
   const body = buildMultipart(boundary, fileName, mimeForFile(fileName), fileBuffer, {
@@ -191,18 +189,19 @@ async function attempt(
 
 export async function transcribeFile(
   settings: AssessmentSettings,
-  absolutePath: string,
+  fileBuffer: ArrayBuffer | Uint8Array,
   fileName: string,
 ): Promise<TranscriptResult> {
   if (!settings.asrEnabled) throw new AsrError("语音转写已在设置里关闭。");
   if (!settings.asrApiKey) throw new AsrError("还没有配置语音转写 API Key：设置 → 素养评估 → 语音转写");
 
-  let response = await attempt(settings, absolutePath, fileName, "verbose_json");
+  const buffer = Buffer.isBuffer(fileBuffer) ? fileBuffer : Buffer.from(fileBuffer as ArrayBuffer);
+  let response = await attempt(settings, buffer, fileName, "verbose_json");
   if (response.status >= 400 && response.status < 500) {
     const message = errorOf(response.body, response.status);
     // 一些网关只支持 json，不支持 verbose_json
     if (/verbose|response_format|unsupported|invalid/i.test(message)) {
-      response = await attempt(settings, absolutePath, fileName, "json");
+      response = await attempt(settings, buffer, fileName, "json");
     }
   }
   if (response.status === 401 || response.status === 403) {

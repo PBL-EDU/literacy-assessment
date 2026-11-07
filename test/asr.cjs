@@ -66,7 +66,7 @@ function listen(server) {
     aiTimeoutMs: 30_000,
   };
 
-  const result = await transcribeFile(settings, audioPath, "中文录音.mp3");
+  const result = await transcribeFile(settings, fs.readFileSync(audioPath), "中文录音.mp3");
   assert.equal(result.text, "测试转写");
   assert.equal(result.segments.length, 1);
   assert.equal(result.segments[0].text, "测试转写");
@@ -81,12 +81,11 @@ function listen(server) {
   console.log("  ok   中文文件名已转 ASCII，不会触发 HTTP header 错误");
 
   // 25 MB 保护：OpenAI 官方地址 + 超大文件，应在发请求前报错
-  const bigPath = path.join(workDir, "big.mp3");
-  fs.writeFileSync(bigPath, Buffer.alloc(26 * 1024 * 1024));
+  const bigBuffer = Buffer.alloc(26 * 1024 * 1024);
   const openAiSettings = { ...settings, asrBaseUrl: "https://api.openai.com/v1" };
   let blocked = false;
   try {
-    await transcribeFile(openAiSettings, bigPath, "big.mp3");
+    await transcribeFile(openAiSettings, bigBuffer, "big.mp3");
   } catch (error) {
     blocked = /25 MB/.test(String(error && error.message));
   }

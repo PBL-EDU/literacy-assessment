@@ -1,67 +1,133 @@
-# 白日梦素养评估插件 · 授权声明 v0.1
+# PolyForm Noncommercial License 1.0.0
 
-Copyright (c) 2026 白日梦计划 / PBL-EDU. All rights reserved.
+Required Notice: Copyright (c) 2026 PBL-EDU.
 
-本插件（含 Obsidian 插件代码、提示词、报告模板与随附文档）按以下两类授权使用。下载、安装或使用即表示你同意本声明。
+<https://polyformproject.org/licenses/noncommercial/1.0.0>
 
-## 一、个人使用授权（免费）
+## Acceptance
 
-在遵守本声明的前提下，自然人可免费下载、安装、复制和使用本插件，用于：
+In order to get any license under these terms, you must agree
+to them as both strict obligations and conditions to all
+your licenses.
 
-- 个人的教学、备课、课堂观察与素养评估；
-- 单个导师在自己的 Obsidian 库中整理素材、生成报告；
-- 非商业性的个人学习、研究与方法实践。
+## Copyright License
 
-个人使用可以修改本地副本，但**不得公开分发修改版**，不得用于下面的机构/商业场景。
+The licensor grants you a copyright license for the
+software to do everything you might do with the software
+that would otherwise infringe the licensor's copyright
+in it for any permitted purpose.  However, you may
+only distribute the software according to [Distribution
+License](#distribution-license) and make changes or new works
+based on the software according to [Changes and New Works
+License](#changes-and-new-works-license).
 
-### 个人使用的限制
+## Distribution License
 
-1. 不得转售、出租、按次收费提供本插件或其主要功能；
-2. 不得把本插件部署给两位及以上导师，或作为机构评估系统的一部分；
-3. 不得把本插件嵌入收费产品、服务、培训或白标方案；
-4. 不得移除版权、商标与授权声明；
-5. 不得用本插件及其提示词制作与本项目竞争的评估产品；
-6. 不得用本插件处理未取得合法授权的未成年人数据。
+The licensor grants you an additional copyright license
+to distribute copies of the software.  Your license
+to distribute covers distributing the software with
+changes and new works permitted by [Changes and New Works
+License](#changes-and-new-works-license).
 
-## 二、机构 / 商业使用授权（需书面许可）
+## Notices
 
-机构（学校、学习中心、公益组织、公司等）在以下任一情形，需取得白日梦项目组的书面授权：
+You must ensure that anyone who gets a copy of any part of
+the software from you also gets a copy of these terms or the
+URL for them above, as well as copies of any plain-text lines
+beginning with `Required Notice:` that the licensor provided
+with the software.  For example:
 
-- 部署给 2 位及以上导师使用；
-- 作为机构评估、教研、督导或管理系统的一部分；
-- 对外提供收费服务、白标（OEM）、咨询或培训；
-- 需要机构级聚合报告、账号权限、审计、数据合规支持或定制 rubric。
+> Required Notice: Copyright Yoyodyne, Inc. (http://example.com)
 
-授权范围、费用、支持内容、数据处理条款，以双方签署的协议为准。未经书面授权，机构不得以上述方式使用本插件。
+## Changes and New Works License
 
-## 三、数据与模型 API
+The licensor grants you an additional copyright license to
+make changes and new works based on the software for any
+permitted purpose.
 
-1. 本插件**不提供**大模型 API，也不代收模型费用；API Key、服务商账户与费用由使用者自行解决。
-2. 默认情况下，素材、转写、证据与报告保存在使用者本地；项目组不收取、不存储使用者的原始素材与报告，除非使用者主动提交或另行签约。
-3. 使用者负责取得监护人/机构同意，遵守《中华人民共和国个人信息保护法》《中华人民共和国未成年人保护法》等法律法规；项目组不承担因使用者违法处理数据产生的责任。
-4. 使用者选择第三方 AI 服务商时，应自行确认其数据使用、留存与跨境条款。
+## Patent License
 
-## 四、无担保与责任限制
+The licensor grants you a patent license for the software that
+covers patent claims the licensor can license, or becomes able
+to license, that you would infringe by using the software.
 
-本插件按“现状”提供，不保证 AI 输出准确、完整或适用于特定目的。报告是 AI 辅助草稿，必须由导师复核后使用。在法律允许的最大范围内，项目组不对使用本插件产生的间接损失、数据丢失、第三方索赔或声誉损失承担责任。
+## Noncommercial Purposes
 
-## 五、商标
+Any noncommercial purpose is a permitted purpose.
 
-“白日梦”“白日梦行动”“素养评估”等名称与标识归项目组所有；未经许可不得用于商业宣传、机构服务或产品命名。
+## Personal Uses
 
-## 六、其他
+Personal use for research, experiment, and testing for
+the benefit of public knowledge, personal study, private
+entertainment, hobby projects, amateur pursuits, or religious
+observance, without any anticipated commercial application,
+is use for a permitted purpose.
 
-1. 本声明适用中华人民共和国法律；争议由项目组所在地有管辖权的人民法院处理。
-2. 违反本声明即终止授权；已产生的报告与数据仍归使用者/机构所有，但不得继续使用本插件。
-3. 项目组可在后续版本更新授权条款；已下载版本按下载时随附的声明执行。
-4. 授权咨询、机构合作：通过 PBL-EDU 项目渠道联系。
+## Noncommercial Organizations
 
----
+Use by any charitable organization, educational institution,
+public research organization, public safety or health
+organization, environmental protection organization,
+or government institution is use for a permitted purpose
+regardless of the source of funding or obligations resulting
+from the funding.
 
-## English Summary
+## Fair Use
 
-This plugin is **free for individual, non-commercial use**. Institutional or commercial use — including deployment to two or more mentors, organization-wide assessment, paid services, white-label/OEM, or training — requires a **written license** from the project team.
+You may have "fair use" rights for the software under the
+law. These terms do not limit them.
 
-The plugin does **not** provide model APIs; users supply their own API keys and are responsible for data compliance and costs. AI outputs are drafts requiring human review. Provided “as is”, without warranty. “白日梦 / 白日梦行动 / 素养评估” are trademarks of the project team.
+## No Other Rights
 
-For licensing: contact the PBL-EDU project team.
+These terms do not allow you to sublicense or transfer any of
+your licenses to anyone else, or prevent the licensor from
+granting licenses to anyone else.  These terms do not imply
+any other licenses.
+
+## Patent Defense
+
+If you make any written claim that the software infringes or
+contributes to infringement of any patent, your patent license
+for the software granted under these terms ends immediately. If
+your company makes such a claim, your patent license ends
+immediately for work on behalf of your company.
+
+## Violations
+
+The first time you are notified in writing that you have
+violated any of these terms, or done anything with the software
+not covered by your licenses, your licenses can nonetheless
+continue if you come into full compliance with these terms,
+and take practical steps to correct past violations, within
+32 days of receiving notice.  Otherwise, all your licenses
+end immediately.
+
+## No Liability
+
+***As far as the law allows, the software comes as is, without
+any warranty or condition, and the licensor will not be liable
+to you for any damages arising out of these terms or the use
+or nature of the software, under any kind of legal claim.***
+
+## Definitions
+
+The **licensor** is the individual or entity offering these
+terms, and the **software** is the software the licensor makes
+available under these terms.
+
+**You** refers to the individual or entity agreeing to these
+terms.
+
+**Your company** is any legal entity, sole proprietorship,
+or other kind of organization that you work for, plus all
+organizations that have control over, are under the control of,
+or are under common control with that organization.  **Control**
+means ownership of substantially all the assets of an entity,
+or the power to direct its management and policies by vote,
+contract, or otherwise.  Control can be direct or indirect.
+
+**Your licenses** are all the licenses granted to you for the
+software under these terms.
+
+**Use** means anything you do with the software requiring one
+of your licenses.

@@ -1,7 +1,7 @@
 /**
  * Obsidian 数据层：目录、行动笔记、学员档案、素材枚举。
  */
-import { App, FileSystemAdapter, TFile, normalizePath, parseYaml } from "obsidian";
+import { App, TFile, normalizePath, parseYaml } from "obsidian";
 import type {
   ActivityMeta,
   ActivityRecord,
@@ -222,14 +222,6 @@ export async function upsertLinkBlock(app: App, path: string, block: string): Pr
     ? markdown.replace(pattern, section)
     : `${markdown.trimEnd()}\n\n${section}\n`;
   if (next !== markdown) await writeText(app, path, next);
-}
-
-export function getFullPath(app: App, path: string): string {
-  const adapter = app.vault.adapter;
-  if (!(adapter instanceof FileSystemAdapter)) {
-    throw new Error("当前不是桌面端文件系统，无法读取本地素材路径。");
-  }
-  return adapter.getFullPath(normalizePath(path));
 }
 
 export async function openFile(app: App, path: string): Promise<void> {

@@ -2,12 +2,36 @@
 
 面向一线教育者的**本地素养评估工作台**：把一次项目 / 课堂 / 活动的素材收进本地文件夹，由 AI 整理（录音转写、照片说明），生成**行动成长报告**；按项目生成单同学项目报告与**项目总报告**；按学期/学年生成单同学阶段报告与**学期/学年总报告**。每份报告同时生成内部版和对外脱敏版。
 
+## About (English)
+
+**Literacy Teacher Workbench** is a local-first Obsidian plugin for project-based literacy assessment. Educators collect classroom materials, recordings, photos, and observation notes in a project → action structure. The plugin transcribes audio, describes images, extracts evidence, and produces evidence-linked action reports, per-student project reports, project overviews, and term reports.
+
+It also generates an internal version and a redacted external version of every report. The external version replaces student names with aliases and blurs photos.
+
+### Install
+
+Download `main.js`, `manifest.json`, and `styles.css` from the matching GitHub Release, place them in:
+
+```text
+<vault>/.obsidian/plugins/literacy-assessment/
+```
+
+Then enable **Literacy Teacher Workbench** in Obsidian's community plugins settings. BRAT users can add `PBL-EDU/literacy-assessment`.
+
+### Network and privacy
+
+The plugin has no server and no telemetry. It contacts only the AI provider and GetNote OpenAPI that the user explicitly configures, using the user's own API keys. Materials and reports stay in the local vault. A confirmation dialog is shown before any AI upload. No automatic updates.
+
+### License
+
+Released under the **PolyForm Noncommercial License 1.0.0**: free for individual, noncommercial use; institutional or commercial deployment requires a separate written license. See [LICENSE](LICENSE) and [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md).
+
 - 插件 id：`literacy-assessment`
-- 版本：`0.2.3`
+- 版本：`0.2.4`
 - 形态：Obsidian 桌面端插件；数据全部在本地库；AI 通过 OpenAI 兼容接口调用，导师自带 Key
 - 不引入 ffmpeg / 本地模型 / 常驻服务
 - 授权：个人导师免费使用；机构部署/商用需书面授权（见 [LICENSE](LICENSE)）
-- 许可性质：源码公开，但不是 OSI 开源许可；机构/商业使用需单独授权
+- 许可证：**PolyForm Noncommercial 1.0.0**；个人/非商业免费，机构/商业使用需单独授权（见 [LICENSE](LICENSE) 与 [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md)）
 - 网络：只有导师主动调用 AI 或得到 OpenAPI 时才联网，使用导师自己配置的 Key；无遥测、无自动更新
 - 数据：素材与报告默认保存在本地库；仓库不包含任何真实学生数据或 API Key
 
@@ -72,9 +96,9 @@ npm run build
 
 在 Obsidian 设置 → 第三方插件里启用「素养评估」。
 
-想先试一下：从 [GitHub Releases](https://github.com/PBL-EDU/literacy-assessment/releases/tag/0.2.3) 下载 `main.js`、`manifest.json`、`styles.css`，放入插件目录；或使用 zip 安装包。不要把测试用的学生素材库提交到本仓库。
+想先试一下：从 [GitHub Releases](https://github.com/PBL-EDU/literacy-assessment/releases/tag/0.2.4) 下载 `main.js`、`manifest.json`、`styles.css`，放入插件目录；或使用 zip 安装包。不要把测试用的学生素材库提交到本仓库。
 
-BRAT 用户添加仓库 `PBL-EDU/literacy-assessment`，选择 `0.2.3` 即可。
+BRAT 用户添加仓库 `PBL-EDU/literacy-assessment`，选择 `0.2.4` 即可。
 
 ## 快速上手
 
@@ -144,7 +168,7 @@ npm run test:smoke   # 用 mock 的 obsidian 模块加载 main.js
 - [需求列表](docs/需求列表.md)
 - [架构说明](docs/架构说明.md)
 - [使用指南](docs/使用指南.md)
-- [0.2.3 UI 与报告设计](docs/UI与报告设计-0.2.3.md)
+- [0.2.4 UI 与报告设计](docs/UI与报告设计-0.2.4.md)
 - [变更记录](CHANGELOG.md)
 - [发布到 GitHub 与 Obsidian 市场](docs/发布到GitHub与Obsidian市场.md)
 - [得到大脑录音接入](docs/得到接入.md)

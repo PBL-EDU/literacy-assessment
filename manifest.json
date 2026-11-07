@@ -1,9 +1,9 @@
 {
   "id": "literacy-assessment",
   "name": "Literacy Teacher Workbench",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "minAppVersion": "1.4.0",
-  "description": "本地优先的素养评估工作台：按项目/行动收素材，AI 整理证据，生成行动、项目与学期总报告，并支持对外脱敏版。",
+  "description": "A local-first literacy assessment workbench for project-based learning: collect action evidence, generate action, project, and term reports, and export redacted public versions.",
   "author": "denghao",
   "authorUrl": "https://github.com/PBL-EDU",
   "isDesktopOnly": true

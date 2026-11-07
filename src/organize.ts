@@ -6,7 +6,6 @@ import type { ActivityRecord, AssessmentSettings } from "./types";
 import { SUBFOLDERS } from "./types";
 import { formatBytes, formatTimestamp, kindLabel, mimeForFile, nowISO, stemOf } from "./core";
 import {
-  getFullPath,
   listArtifacts,
   pathExists,
   readText,
@@ -214,8 +213,8 @@ export async function organizeActivity(
           progress.status(`转写 ${artifact.name}…`);
           progress.log(`开始转写：${artifact.name}（${formatBytes(artifact.size)}）`);
           try {
-            const absolute = getFullPath(app, artifact.path);
-            const result = await transcribeFile(settings, absolute, artifact.name);
+            const binary = await app.vault.adapter.readBinary(artifact.path);
+            const result = await transcribeFile(settings, binary, artifact.name);
             await writeText(app, transcriptPath(record.folder, artifact.name), renderTranscriptMarkdown(artifact.name, result));
             summary.transcribed++;
             progress.log(`完成：${artifact.name}（${result.segments.length} 段）`);
