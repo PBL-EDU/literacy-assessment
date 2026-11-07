@@ -1,6 +1,6 @@
 {
   "name": "literacy-assessment",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Local-first literacy assessment workbench for educators: collect activity materials, organize them with AI, and generate evidence-based growth reports.",
   "main": "main.js",
   "scripts": {
@@ -21,7 +21,7 @@
     "ai"
   ],
   "author": "denghao",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "AGPL-3.0-only",
   "devDependencies": {
     "@types/node": "^20.11.0",
     "esbuild": "^0.25.0",

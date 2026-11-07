@@ -1,4 +1,4 @@
-# 0.2.4 UI 与报告设计记录
+# 0.2.5 UI 与报告设计记录
 
 ## 一、右侧栏
 
@@ -93,7 +93,7 @@ alias: "小名或化名"
 
 ## 五、版本
 
-- v0.2.4
-- 报告 frontmatter 写入 `report_version: "0.2.4"`。
+- v0.2.5
+- 报告 frontmatter 写入 `report_version: "0.2.5"`。
 - 变更记录见 `CHANGELOG.md`。
 

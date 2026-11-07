@@ -24,14 +24,14 @@ The plugin has no server and no telemetry. It contacts only the AI provider and 
 
 ### License
 
-Released under the **PolyForm Noncommercial License 1.0.0**: free for individual, noncommercial use; institutional or commercial deployment requires a separate written license. See [LICENSE](LICENSE) and [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md).
+Released under the **GNU Affero General Public License v3.0 (AGPL-3.0-only)**. You may use, modify, and distribute it, including commercially, provided you comply with the AGPL. A separate commercial license is available for organizations that cannot accept the AGPL obligations. See [LICENSE](LICENSE) and [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md).
 
 - 插件 id：`literacy-assessment`
-- 版本：`0.2.4`
+- 版本：`0.2.5`
 - 形态：Obsidian 桌面端插件；数据全部在本地库；AI 通过 OpenAI 兼容接口调用，导师自带 Key
 - 不引入 ffmpeg / 本地模型 / 常驻服务
 - 授权：个人导师免费使用；机构部署/商用需书面授权（见 [LICENSE](LICENSE)）
-- 许可证：**PolyForm Noncommercial 1.0.0**；个人/非商业免费，机构/商业使用需单独授权（见 [LICENSE](LICENSE) 与 [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md)）
+- 许可证：**AGPL-3.0**；可自由使用/修改/分发（含商业用途），但需遵守 AGPL 的源码与网络使用条款；不接受 AGPL 的机构可购买商业授权（见 [LICENSE](LICENSE) 与 [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md)）
 - 网络：只有导师主动调用 AI 或得到 OpenAPI 时才联网，使用导师自己配置的 Key；无遥测、无自动更新
 - 数据：素材与报告默认保存在本地库；仓库不包含任何真实学生数据或 API Key
 
@@ -96,9 +96,9 @@ npm run build
 
 在 Obsidian 设置 → 第三方插件里启用「素养评估」。
 
-想先试一下：从 [GitHub Releases](https://github.com/PBL-EDU/literacy-assessment/releases/tag/0.2.4) 下载 `main.js`、`manifest.json`、`styles.css`，放入插件目录；或使用 zip 安装包。不要把测试用的学生素材库提交到本仓库。
+想先试一下：从 [GitHub Releases](https://github.com/PBL-EDU/literacy-assessment/releases/tag/0.2.5) 下载 `main.js`、`manifest.json`、`styles.css`，放入插件目录；或使用 zip 安装包。不要把测试用的学生素材库提交到本仓库。
 
-BRAT 用户添加仓库 `PBL-EDU/literacy-assessment`，选择 `0.2.4` 即可。
+BRAT 用户添加仓库 `PBL-EDU/literacy-assessment`，选择 `0.2.5` 即可。
 
 ## 快速上手
 
@@ -168,7 +168,7 @@ npm run test:smoke   # 用 mock 的 obsidian 模块加载 main.js
 - [需求列表](docs/需求列表.md)
 - [架构说明](docs/架构说明.md)
 - [使用指南](docs/使用指南.md)
-- [0.2.4 UI 与报告设计](docs/UI与报告设计-0.2.4.md)
+- [0.2.5 UI 与报告设计](docs/UI与报告设计-0.2.5.md)
 - [变更记录](CHANGELOG.md)
 - [发布到 GitHub 与 Obsidian 市场](docs/发布到GitHub与Obsidian市场.md)
 - [得到大脑录音接入](docs/得到接入.md)
