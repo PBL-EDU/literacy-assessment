@@ -175,12 +175,13 @@ export async function addExternalId(app: App, folder: string, externalId: string
   const file = app.vault.getAbstractFileByPath(normalizePath(notePath));
   if (!(file instanceof TFile)) return;
   await app.fileManager.processFrontMatter(file, (frontmatter) => {
-    const existing = Array.isArray(frontmatter.getnote_ids)
-      ? frontmatter.getnote_ids.filter((id: unknown): id is string => typeof id === "string")
+    const data = frontmatter as Record<string, unknown>;
+    const existing = Array.isArray(data.getnote_ids)
+      ? data.getnote_ids.filter((id: unknown): id is string => typeof id === "string")
       : [];
     if (!existing.includes(externalId)) existing.push(externalId);
-    frontmatter.getnote_ids = existing;
-    frontmatter.updated = nowISO();
+    data.getnote_ids = existing;
+    data.updated = nowISO();
   });
 }
 
@@ -731,8 +732,9 @@ export async function updateActivityStatus(app: App, folder: string, status: str
   const file = app.vault.getAbstractFileByPath(normalizePath(notePath));
   if (file instanceof TFile) {
     await app.fileManager.processFrontMatter(file, (frontmatter) => {
-      frontmatter.status = status;
-      frontmatter.updated = nowISO();
+      const data = frontmatter as Record<string, unknown>;
+      data.status = status;
+      data.updated = nowISO();
     });
   }
 }

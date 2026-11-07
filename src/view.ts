@@ -167,7 +167,7 @@ export class LiteracyView extends ItemView {
     const pdfMarkerPath = `${activity.folder}/${SUBFOLDERS.reports}/.pdf-exported`;
     const externalReportPath = reportPath ? reportPath.replace(/\.md$/i, "_对外.md") : "";
     const [hasReport, hasManifest, pdfExported, hasExternalReport] = await Promise.all([
-      Boolean(reportPath),
+      Promise.resolve(Boolean(reportPath)),
       pathExists(this.app, manifestPath),
       pathExists(this.app, pdfMarkerPath),
       externalReportPath ? pathExists(this.app, externalReportPath) : Promise.resolve(false),
@@ -195,8 +195,7 @@ export class LiteracyView extends ItemView {
     });
     if (pdfExported) chips.createEl("span", { cls: "la-chip ok", text: "PDF ✓" });
     if (hasExternalReport) {
-      const externalChip = chips.createEl("span", { cls: "la-chip ok", text: "对外版 ✓" });
-      externalChip.style.cursor = "pointer";
+      const externalChip = chips.createEl("span", { cls: "la-chip ok la-chip-link", text: "对外版 ✓" });
       externalChip.onclick = () => void this.plugin.openPath(externalReportPath);
     }
 

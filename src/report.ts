@@ -68,7 +68,7 @@ export function renderActivityReport(a: ActivityAssessment): string {
   lines.push(`mentor: ${yamlScalar(a.mentor)}`);
   lines.push(`generated_at: ${yamlScalar(a.generated_at)}`);
   lines.push(`model: ${yamlScalar(a.model)}`);
-  lines.push(`report_version: "0.2.5"`);
+  lines.push(`report_version: "0.2.6"`);
   lines.push("---");
   lines.push("");
   const scope = a.activity_series ? `${a.activity_series} · ${a.activity_title}` : a.activity_title;
@@ -182,7 +182,7 @@ export function renderStageReport(s: StageAssessment): string {
   lines.push(`period: ${yamlScalar(s.period)}`);
   lines.push(`generated_at: ${yamlScalar(s.generated_at)}`);
   lines.push(`model: ${yamlScalar(s.model)}`);
-  lines.push(`report_version: "0.2.5"`);
+  lines.push(`report_version: "0.2.6"`);
   lines.push("---");
   lines.push("");
   const stageScope = isSeries ? `${s.period} · ${s.student}` : `${s.period} · ${s.student}`;
@@ -260,7 +260,7 @@ export function renderOverviewReport(o: OverviewAssessment): string {
   lines.push(`period: ${yamlScalar(o.period)}`);
   lines.push(`generated_at: ${yamlScalar(o.generated_at)}`);
   lines.push(`model: ${yamlScalar(o.model)}`);
-  lines.push(`report_version: "0.2.5"`);
+  lines.push(`report_version: "0.2.6"`);
   lines.push("---");
   lines.push("");
   lines.push(`# ${o.report_title}（${o.scope}）`);

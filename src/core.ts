@@ -102,8 +102,11 @@ export function mimeForFile(path: string): string {
 }
 
 export function sanitizeName(name: string): string {
-  const cleaned = name
-    .replace(/[\\/:*?"<>|#^[\]\u0000-\u001f]/g, " ")
+  const withoutControls = [...name]
+    .map((char) => (char.charCodeAt(0) < 32 ? " " : char))
+    .join("");
+  const cleaned = withoutControls
+    .replace(/[\\/:*?"<>|#^[\]]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
     .replace(/^[.\s]+|[.\s]+$/g, "");
@@ -506,7 +509,7 @@ function dayDistance(a: Date, b: Date): number {
 function matchTokens(value: string): string[] {
   return unique(
     value
-      .split(/[\s,，、;；:：·\-—_/（）()【】\[\]]+/)
+      .split(/[\s,，、;；:：·\-—_/（）()【】[\]]+/)
       .map((token) => token.trim())
       .filter((token) => token.length >= 2),
   );

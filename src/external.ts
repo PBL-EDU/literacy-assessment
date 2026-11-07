@@ -50,18 +50,20 @@ async function blurImage(app: App, sourcePath: string, outputFolder: string, ind
     const blob = new Blob([buffer]);
     const bitmap = await createImageBitmap(blob);
     const scale = Math.min(1, 1000 / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement("canvas");
+    const canvas = document.body.createEl("canvas", { cls: "la-hidden-canvas" });
     canvas.width = Math.max(1, Math.round(bitmap.width * scale));
     canvas.height = Math.max(1, Math.round(bitmap.height * scale));
     const ctx = canvas.getContext("2d");
     if (!ctx) {
       bitmap.close();
+      canvas.remove();
       return null;
     }
     ctx.filter = "blur(18px)";
     ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
     bitmap.close();
     const url = canvas.toDataURL("image/jpeg", 0.82);
+    canvas.remove();
     const base64 = url.split(",")[1] ?? "";
     if (!base64) return null;
     const target = `${outputFolder}/图片_${index + 1}.jpg`;

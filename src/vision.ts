@@ -26,17 +26,20 @@ async function resizeToJpeg(buffer: ArrayBuffer, mime: string): Promise<string |
     const scale = Math.min(1, MAX_DIM / Math.max(bitmap.width, bitmap.height));
     const width = Math.max(1, Math.round(bitmap.width * scale));
     const height = Math.max(1, Math.round(bitmap.height * scale));
-    const canvas = document.createElement("canvas");
+    const canvas = document.body.createEl("canvas", { cls: "la-hidden-canvas" });
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext("2d");
     if (!ctx) {
       bitmap.close();
+      canvas.remove();
       return null;
     }
     ctx.drawImage(bitmap, 0, 0, width, height);
     bitmap.close();
-    return canvas.toDataURL("image/jpeg", 0.85);
+    const url = canvas.toDataURL("image/jpeg", 0.85);
+    canvas.remove();
+    return url;
   } catch {
     return null;
   }
@@ -112,12 +115,10 @@ async function extractVideoFrames(
   count: number,
 ): Promise<Array<{ time: number; dataUrl: string }>> {
   const url = URL.createObjectURL(new Blob([buffer], { type: mime }));
-  const video = document.createElement("video");
+  const video = document.body.createEl("video", { cls: "la-hidden-video" });
   video.src = url;
   video.muted = true;
   video.preload = "auto";
-  video.style.display = "none";
-  document.body.appendChild(video);
   try {
     if (video.readyState < 1) await waitForEvent(video, "loadedmetadata", 20_000);
     const duration = video.duration;
@@ -132,13 +133,17 @@ async function extractVideoFrames(
     for (const time of times) {
       await seekVideo(video, time);
       const scale = Math.min(1, 1280 / Math.max(video.videoWidth, video.videoHeight));
-      const canvas = document.createElement("canvas");
+      const canvas = document.body.createEl("canvas", { cls: "la-hidden-canvas" });
       canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
       canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
       const ctx = canvas.getContext("2d");
-      if (!ctx) throw new AiError("无法创建画布，抽帧失败。");
+      if (!ctx) {
+        canvas.remove();
+        throw new AiError("无法创建画布，抽帧失败。");
+      }
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       frames.push({ time, dataUrl: canvas.toDataURL("image/jpeg", 0.82) });
+      canvas.remove();
     }
     return frames;
   } finally {

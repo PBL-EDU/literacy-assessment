@@ -27,7 +27,7 @@ The plugin has no server and no telemetry. It contacts only the AI provider and 
 Released under the **GNU Affero General Public License v3.0 (AGPL-3.0-only)**. You may use, modify, and distribute it, including commercially, provided you comply with the AGPL. A separate commercial license is available for organizations that cannot accept the AGPL obligations. See [LICENSE](LICENSE) and [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md).
 
 - 插件 id：`literacy-assessment`
-- 版本：`0.2.5`
+- 版本：`0.2.6`
 - 形态：Obsidian 桌面端插件；数据全部在本地库；AI 通过 OpenAI 兼容接口调用，导师自带 Key
 - 不引入 ffmpeg / 本地模型 / 常驻服务
 - 授权：个人导师免费使用；机构部署/商用需书面授权（见 [LICENSE](LICENSE)）
@@ -96,9 +96,9 @@ npm run build
 
 在 Obsidian 设置 → 第三方插件里启用「素养评估」。
 
-想先试一下：从 [GitHub Releases](https://github.com/PBL-EDU/literacy-assessment/releases/tag/0.2.5) 下载 `main.js`、`manifest.json`、`styles.css`，放入插件目录；或使用 zip 安装包。不要把测试用的学生素材库提交到本仓库。
+想先试一下：从 [GitHub Releases](https://github.com/PBL-EDU/literacy-assessment/releases/tag/0.2.6) 下载 `main.js`、`manifest.json`、`styles.css`，放入插件目录；或使用 zip 安装包。不要把测试用的学生素材库提交到本仓库。
 
-BRAT 用户添加仓库 `PBL-EDU/literacy-assessment`，选择 `0.2.5` 即可。
+BRAT 用户添加仓库 `PBL-EDU/literacy-assessment`，选择 `0.2.6` 即可。
 
 ## 快速上手
 
@@ -168,7 +168,7 @@ npm run test:smoke   # 用 mock 的 obsidian 模块加载 main.js
 - [需求列表](docs/需求列表.md)
 - [架构说明](docs/架构说明.md)
 - [使用指南](docs/使用指南.md)
-- [0.2.5 UI 与报告设计](docs/UI与报告设计-0.2.5.md)
+- [0.2.6 UI 与报告设计](docs/UI与报告设计-0.2.6.md)
 - [变更记录](CHANGELOG.md)
 - [发布到 GitHub 与 Obsidian 市场](docs/发布到GitHub与Obsidian市场.md)
 - [得到大脑录音接入](docs/得到接入.md)

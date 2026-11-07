@@ -25,10 +25,10 @@ git ls-files | Select-String -Pattern "demo-vault|提示词|data.json|\.mp3"
 
 | 文件 | 当前值 |
 | --- | --- |
-| `manifest.json` | `0.2.5` |
-| `package.json` | `0.2.5` |
-| `versions.json` | 含 `0.2.0`、`0.2.5` |
-| `CHANGELOG.md` | 含 0.2.5 |
+| `manifest.json` | `0.2.6` |
+| `package.json` | `0.2.6` |
+| `versions.json` | 含 `0.2.0`、`0.2.6` |
+| `CHANGELOG.md` | 含 0.2.6 |
 | `README.md` | 含安装、网络使用、许可说明 |
 
 `versions.json` 格式：
@@ -37,7 +37,7 @@ git ls-files | Select-String -Pattern "demo-vault|提示词|data.json|\.mp3"
 {
   "0.1.0": "1.4.0",
   "0.2.0": "1.4.0",
-  "0.2.5": "1.4.0"
+  "0.2.6": "1.4.0"
 }
 ```
 
@@ -67,7 +67,7 @@ git push -u origin main
 
 Obsidian 要求：
 
-- Release tag **必须等于** `manifest.json` 的 `version`，即 `0.2.5`，不要用 `v0.2.5`；
+- Release tag **必须等于** `manifest.json` 的 `version`，即 `0.2.6`，不要用 `v0.2.6`；
 - Release 必须附带：
   - `main.js`
   - `manifest.json`
@@ -76,13 +76,13 @@ Obsidian 要求：
 `docs/github-actions-release.yml` 是一份可选的 Release workflow 示例。当前仓库先用手动 Release，避免因 GitHub token 缺少 `workflow` scope 阻塞发布。
 
 ```bash
-git tag 0.2.5
-git push origin 0.2.5
+git tag 0.2.6
+git push origin 0.2.6
 ```
 
 然后在 GitHub Release 页面：
 
-1. 选择 tag `0.2.5`；
+1. 选择 tag `0.2.6`；
 2. 上传构建后的：
    - `main.js`
    - `manifest.json`
@@ -100,9 +100,9 @@ git push origin 0.2.5
 
 在进入社区市场前，朋友可以直接测试：
 
-- **zip**：把 `dist/literacy-assessment-0.2.5.zip` 解压到
+- **zip**：把 `dist/literacy-assessment-0.2.6.zip` 解压到
   `<库>/.obsidian/plugins/literacy-assessment/`；
-- **BRAT**：安装 BRAT 插件，添加本仓库，选择 0.2.5 版本；
+- **BRAT**：安装 BRAT 插件，添加本仓库，选择 0.2.6 版本；
 - 重启 Obsidian，在设置里启用「素养评估」。
 
 测试前提醒朋友：
@@ -139,8 +139,8 @@ Obsidian 允许一定条件下的闭源/商业插件，但要求 README 明确�
 
 - [ ] 仓库 public
 - [ ] 无 `demo-vault/`、录音、学生姓名、API Key
-- [ ] `manifest.json` 版本 = release tag = `0.2.5`
-- [ ] `versions.json` 含 0.2.5
+- [ ] `manifest.json` 版本 = release tag = `0.2.6`
+- [ ] `versions.json` 含 0.2.6
 - [ ] `main.js`、`manifest.json`、`styles.css` 已上传 release
 - [ ] README 的安装、网络、许可说明完整
 - [ ] 在干净库中安装 release 包并启用成功

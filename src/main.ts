@@ -144,8 +144,9 @@ export default class LiteracyAssessmentPlugin extends Plugin {
     });
   }
 
-  async onunload(): Promise<void> {
-    this.app.workspace.detachLeavesOfType(LITERACY_VIEW_TYPE);
+  onunload(): void {
+    // Obsidian restores registered views to their previous location. Do not
+    // detach leaves here; detaching resets user-moved leaves.
   }
 
   async loadSettings(): Promise<void> {

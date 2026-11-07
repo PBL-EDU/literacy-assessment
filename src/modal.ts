@@ -257,10 +257,8 @@ export class NewActivityModal extends Modal {
     const max = Math.max(5, count + 2);
     this.sequenceSelect.empty();
     for (let index = 1; index <= max; index++) {
-      const option = document.createElement("option");
+      const option = this.sequenceSelect.createEl("option", { text: `第 ${index} 次` });
       option.value = String(index);
-      option.text = `第 ${index} 次`;
-      this.sequenceSelect.appendChild(option);
     }
     const next = String(count + 1);
     this.sequenceSelect.value = next;
@@ -558,8 +556,7 @@ export class ProgressModal extends Modal {
 
   log(message: string): void {
     if (!this.logEl) return;
-    const line = this.logEl.createEl("div", { text: message });
-    line.style.marginBottom = "2px";
+    this.logEl.createEl("div", { cls: "la-progress-line", text: message });
     this.logEl.scrollTop = this.logEl.scrollHeight;
   }
 
@@ -590,11 +587,7 @@ export class ConfirmUploadModal extends Modal {
     const { contentEl } = this;
     contentEl.createEl("p", { text: this.message });
 
-    const row = contentEl.createEl("label");
-    row.style.display = "flex";
-    row.style.gap = "8px";
-    row.style.alignItems = "flex-start";
-    row.style.margin = "12px 0";
+    const row = contentEl.createEl("label", { cls: "la-confirm-row" });
     const checkbox = row.createEl("input");
     checkbox.type = "checkbox";
     checkbox.addEventListener("change", () => {
