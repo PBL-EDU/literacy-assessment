@@ -1,9 +1,9 @@
-# 素养评估系统（Obsidian 插件）
+# 素养评估系统（Literacy Assessment）
 
 面向一线教育者的**本地素养评估工作台**：把一次项目 / 课堂 / 活动的素材收进本地文件夹，由 AI 整理（录音转写、照片说明），生成**行动成长报告**；按项目生成单同学项目报告与**项目总报告**；按学期/学年生成单同学阶段报告与**学期/学年总报告**。每份报告同时生成内部版和对外脱敏版。
 
 - 插件 id：`literacy-assessment`
-- 版本：`0.2.1`
+- 版本：`0.2.2`
 - 形态：Obsidian 桌面端插件；数据全部在本地库；AI 通过 OpenAI 兼容接口调用，导师自带 Key
 - 不引入 ffmpeg / 本地模型 / 常驻服务
 - 授权：个人导师免费使用；机构部署/商用需书面授权（见 [LICENSE](LICENSE)）
@@ -72,9 +72,9 @@ npm run build
 
 在 Obsidian 设置 → 第三方插件里启用「素养评估」。
 
-想先试一下：从 [GitHub Releases](https://github.com/PBL-EDU/literacy-assessment/releases/tag/0.2.1) 下载 `main.js`、`manifest.json`、`styles.css`，放入插件目录；或使用 zip 安装包。不要把测试用的学生素材库提交到本仓库。
+想先试一下：从 [GitHub Releases](https://github.com/PBL-EDU/literacy-assessment/releases/tag/0.2.2) 下载 `main.js`、`manifest.json`、`styles.css`，放入插件目录；或使用 zip 安装包。不要把测试用的学生素材库提交到本仓库。
 
-BRAT 用户添加仓库 `PBL-EDU/literacy-assessment`，选择 `0.2.1` 即可。
+BRAT 用户添加仓库 `PBL-EDU/literacy-assessment`，选择 `0.2.2` 即可。
 
 ## 快速上手
 
@@ -144,7 +144,7 @@ npm run test:smoke   # 用 mock 的 obsidian 模块加载 main.js
 - [需求列表](docs/需求列表.md)
 - [架构说明](docs/架构说明.md)
 - [使用指南](docs/使用指南.md)
-- [0.2.1 UI 与报告设计](docs/UI与报告设计-0.2.1.md)
+- [0.2.1 UI 与报告设计](docs/UI与报告设计-0.2.2.md)
 - [变更记录](CHANGELOG.md)
 - [发布到 GitHub 与 Obsidian 市场](docs/发布到GitHub与Obsidian市场.md)
 - [得到大脑录音接入](docs/得到接入.md)

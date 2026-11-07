@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2 — 2026-11-07
+
+### Obsidian 目录名称合规
+- `manifest.json` 的显示名称从「素养评估」改为 `Literacy Assessment`，只使用 Basic Latin，满足 Obsidian Community Directory 的命名要求。
+- 插件 `id` 仍为 `literacy-assessment`，文件夹和命令不变；侧栏、设置页仍显示中文「素养评估」。
+- 版本升至 0.2.2，重新生成 Release 资产。
+
 ## 0.2.1 — 2026-11-07
 
 ### 项目目录改名兼容
