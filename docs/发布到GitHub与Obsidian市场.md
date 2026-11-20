@@ -5,8 +5,8 @@
 公开发布前，以下目录/文件已被 `.gitignore` 排除，不要强行 `git add -f`：
 
 - `demo-vault/`：含真实课堂素材、录音、学生姓名、报告和 API 配置；
-- `docs/提示词/`：内部提示词资产；
-- `docs/提示词系统与商业化.md`：内部讨论稿；
+- `internal/prompts/`：内部提示词资产；
+- `internal/business/`：内部商业与 SaaS 讨论；
 - `design/`：本地 UI 效果图和预览脚本；
 - `dist/`：本地构建产物和 zip；
 - `main.js`：由 CI 构建，不提交旧构建缓存；

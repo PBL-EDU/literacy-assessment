@@ -2,6 +2,7 @@ node_modules/
 dist/
 demo-vault/
 design/
+internal/
 docs/提示词/
 docs/提示词系统与商业化.md
 test/integ-debug.cjs
