@@ -27,7 +27,7 @@ The plugin has no server and no telemetry. It contacts only the AI provider and 
 Released under the **GNU Affero General Public License v3.0 (AGPL-3.0-only)**. You may use, modify, and distribute it, including commercially, provided you comply with the AGPL. A separate commercial license is available for organizations that cannot accept the AGPL obligations. See [LICENSE](LICENSE) and [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md).
 
 - 插件 id：`literacy-assessment`
-- 版本：`0.3.0`
+- 版本：`0.3.1`
 - 形态：Obsidian 桌面端插件；数据全部在本地库；优先调用 DeepSeek 官方 API，导师自带 Key；不需要安装 DeepSeek Harness
 - 不引入 ffmpeg / 本地模型 / 常驻服务
 - 授权：个人导师免费使用；机构部署/商用需书面授权（见 [LICENSE](LICENSE)）
@@ -55,7 +55,7 @@ Released under the **GNU Affero General Public License v3.0 (AGPL-3.0-only)**. Y
 | 新建同学 | 侧栏「人」组「新建同学」/ 命令面板 |
 | 新建行动（项目/课程/课堂/活动/行动） | 侧栏「行动」组「新建行动」/ 命令面板 |
 | 项目下多次行动 | 新建行动时选「归属项目」 |
-| 得到大脑录音同步（暂存 → 匹配已有行动） | 侧栏「同步得到」/ 命令面板 |
+| 长课堂录音默认得到录音卡/录音台录制并同步（暂存 → 匹配已有行动） | 侧栏「同步得到」/ 命令面板 |
 | 得到导入总目录（每条笔记存放/归口位置） | 侧栏「查看导入」/ `05_导入/得到/00_得到导入总目录.md` |
 | 扫描素材、生成素材清单 | 侧栏「扫描」/ 右键行动笔记 |
 | 录音/视频转写（DeepSeek 短音频或 OpenAI 兼容 ASR） | 侧栏「AI 整理」 |
@@ -97,20 +97,20 @@ npm run build
 
 在 Obsidian 设置 → 第三方插件里启用「素养评估」。
 
-想先试一下：从 [GitHub Releases](https://github.com/PBL-EDU/literacy-assessment/releases/tag/0.3.0) 下载 `main.js`、`manifest.json`、`styles.css`，放入插件目录；或使用 zip 安装包。不要把测试用的学生素材库提交到本仓库。
+想先试一下：从 [GitHub Releases](https://github.com/PBL-EDU/literacy-assessment/releases/tag/0.3.1) 下载 `main.js`、`manifest.json`、`styles.css`，放入插件目录；或使用 zip 安装包。不要把测试用的学生素材库提交到本仓库。
 
-BRAT 用户添加仓库 `PBL-EDU/literacy-assessment`，选择 `0.3.0` 即可。
+BRAT 用户添加仓库 `PBL-EDU/literacy-assessment`，选择 `0.3.1` 即可。
 
 ## 快速上手
 
 1. 设置 → 素养评估 → AI 服务：点「DeepSeek 官方（推荐）」，填 DeepSeek API Key；点「测试连接」。
-2. OCR 默认使用同一个 Key；短音频转写可保持「DeepSeek 官方」，长录音/MP3/M4A 改用 OpenAI 兼容转写服务。
+2. OCR 默认使用同一个 Key；短音频可用 DeepSeek 官方转写；**长课堂录音默认用得到录音卡/录音台录制，再点侧栏「同步得到」**，不要依赖插件内 ASR。
 3. 侧栏「素养评估」→ 新建项目（可选）→ 新建小组/同学（可选）→ 新建行动：归属项目默认「暂不归属」（之后可补），勾选小组/同学、勾选/新增教学目标。
 4. 把录音、视频、照片、PDF/Word 学习单放进行动 `素材/`；再点「扫描」→「AI 整理」。
 5. 点「生成报告」（单次行动，自动带证据照片）。
 6. 同一项目的多次行动，点项目标题旁「项目报告」；按学员/时间的阶段报告在命令面板；报告可导出 PDF。
 
-详细说明见 [使用指南](docs/使用指南.md) 和 [v0.3.0 操作手册](docs/素养教师工作台-操作手册-v0.3.0.pdf)。
+详细说明见 [使用指南](docs/使用指南.md) 和 [v0.3.1 操作手册](docs/素养教师工作台-操作手册-v0.3.1.pdf)。
 
 ## 数据目录
 
@@ -155,7 +155,7 @@ npm run test:smoke   # 用 mock 的 obsidian 模块加载 main.js
 
 - `typecheck`、`build`、25 项单测、bundle 冒烟测试已通过。
 - **尚未在 Obsidian 真机 + 真实 API Key 下跑通一次完整活动**；ASR/视觉/文本模型与得到 OpenAPI 的兼容性需要用小样本校准。
-- 已知限制：语音转写需要单独配置（文本 Key 不能转写）；OpenAI 转写单文件上限 25 MB，长录音需压缩/切分或用现成转写文字；PDF/Word 未自动解析；视频会抽 3 个关键帧，但编码不被 Electron 支持时只保留音轨转写；图像需要视觉模型（deepseek-chat 不能看图）；没有证据人工复核界面；没有内容 hash 缓存与成本预估；没有公开网站/机构报告。
+- 已知限制：长课堂录音默认走得到录音卡/录音台的转写，再「同步得到」；插件内 DeepSeek ASR 只支持短 WAV/Ogg（≤8 MB、≤120 秒），OpenAI 兼容转写单文件上限 25 MB；视频会抽 3 个关键帧，编码不被 Electron 支持时只保留音轨转写；没有证据人工复核界面；没有内容 hash 缓存与成本预估；没有公开网站/机构报告。
 
 ## 授权与商用
 

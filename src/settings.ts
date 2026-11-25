@@ -200,7 +200,7 @@ export class LiteracySettingTab extends PluginSettingTab {
     new Setting(containerEl).setName("语音转写").setHeading();
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "DeepSeek 官方 ASR 只支持 WAV/Ogg，单文件 ≤8 MB、≤120 秒，适合短语音；MP3/M4A 和长课堂录音请选「OpenAI 兼容」服务，或先把现成转写文字放进 素材/。",
+      text: "长课堂录音默认用「得到录音卡/录音台」录制，等待得到转写后在侧栏点「同步得到」。DeepSeek 官方 ASR 只用于短语音（WAV/Ogg，≤8 MB、≤120 秒）；MP3/M4A 或长录音也可另配 OpenAI 兼容服务。",
     });
 
     new Setting(containerEl)
@@ -215,7 +215,7 @@ export class LiteracySettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("转写服务")
-      .setDesc("DeepSeek 官方优先；长录音/常见音频格式请用 OpenAI 兼容服务。")
+      .setDesc("短音频用 DeepSeek；长课堂录音默认用得到录音卡录制并「同步得到」，也可选 OpenAI 兼容服务。")
       .addDropdown((dropdown) =>
         dropdown
           .addOption("deepseek", "DeepSeek 官方（短音频）")
@@ -542,7 +542,7 @@ export class LiteracySettingTab extends PluginSettingTab {
     new Setting(containerEl).setName("关于").setHeading();
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "素养评估 v0.3.0 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
+      text: "素养评估 v0.3.1 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
     });
     containerEl.createEl("p", {
       cls: "setting-item-description",

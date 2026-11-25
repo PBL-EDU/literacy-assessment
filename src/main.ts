@@ -342,7 +342,7 @@ export default class LiteracyAssessmentPlugin extends Plugin {
 
     if (needsAsr.length && this.settings.asrEnabled && !this.settings.asrApiKey.trim()) {
       new Notice(
-        `检测到 ${needsAsr.length} 个待转写录音/视频，但还没有配置「语音转写」的 API Key。\n\n设置 → 素养评估 → 语音转写里单独填；DeepSeek 的文本 Key 不能转写音频。\n\n也可以把「得到大脑」等现成转写文字放进 素材/ 或 观察/，直接生成报告。`,
+        `检测到 ${needsAsr.length} 个待转写录音/视频，但还没有配置「语音转写」的 API Key。\n\n长课堂录音的默认做法：用得到录音卡/录音台录制，等待得到生成转写，再点侧栏「同步得到」。\n\n短音频如需插件内转写，可在 设置 → 素养评估 → 语音转写 配置 DeepSeek 官方；DeepSeek 文本 Key 不能替代转写 Key。`,
         15_000,
       );
       return;

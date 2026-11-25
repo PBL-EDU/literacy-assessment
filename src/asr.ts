@@ -135,7 +135,7 @@ async function openAiAttempt(
   if (isOpenAiHost(settings.asrBaseUrl) && size > OPENAI_MAX_BYTES) {
     const mb = (size / 1024 / 1024).toFixed(1);
     throw new AsrError(
-      `OpenAI 转写接口单文件上限 25 MB，当前文件约 ${mb} MB。请先压缩/切分；或把「得到大脑」等现成转写文字放进 素材/ 或 观察/，直接用文字生成报告。`,
+      `OpenAI 转写接口单文件上限 25 MB，当前文件约 ${mb} MB。长课堂录音优先用「得到录音卡/录音台」录制，等待得到转写后，在侧栏点「同步得到」；也可以先压缩/切分，或把现成转写文字放进 素材/ 或 观察/。`,
     );
   }
   if (!fileBuffer.length) throw new AsrError("素材文件是空的。");
@@ -188,16 +188,17 @@ async function transcribeWithDeepSeek(
   if (!isDeepSeekAsrFile(fileName)) {
     throw new AsrError(
       `DeepSeek 官方转写只支持 WAV/Ogg/Opus，当前文件是「${fileName}」。` +
-        "请把音频转成 WAV，或在设置里改用「OpenAI 兼容 /audio/transcriptions」。",
+        "长课堂录音请优先用「得到录音卡/录音台」录制，等待得到转写后点侧栏「同步得到」；" +
+        "短音频可以转成 WAV，或改用「OpenAI 兼容 /audio/transcriptions」。",
     );
   }
   if (buffer.length > DEEPSEEK_MAX_BYTES) {
-    throw new AsrError("DeepSeek 官方转写单文件上限 8 MB；请切分后再试，或改用其他转写服务。");
+    throw new AsrError("DeepSeek 官方转写单文件上限 8 MB；长课堂录音请用得到录音卡/录音台录制，再用「同步得到」；短音频可切分后重试。");
   }
   const duration = wavDurationSeconds(buffer);
   if (duration && duration > DEEPSEEK_MAX_SECONDS) {
     throw new AsrError(
-      `DeepSeek 官方转写最长 120 秒，当前 WAV 约 ${Math.round(duration)} 秒。请切分，或改用其他转写服务。`,
+      `DeepSeek 官方转写最长 120 秒，当前 WAV 约 ${Math.round(duration)} 秒。长课堂录音请用得到录音卡/录音台录制，再用「同步得到」；短音频可切分后重试。`,
     );
   }
   const key = settings.asrApiKey || settings.aiApiKey;

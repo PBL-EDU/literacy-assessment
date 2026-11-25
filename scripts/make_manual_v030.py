@@ -5,7 +5,7 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
-OUT = r"E:\DeepSeek Harness\白日梦计划\素养评估系统\docs\素养教师工作台-操作手册-v0.3.0.docx"
+OUT = r"E:\DeepSeek Harness\白日梦计划\素养评估系统\docs\素养教师工作台-操作手册-v0.3.1.docx"
 FONT = "Microsoft YaHei"
 ACCENT = RGBColor(0x1F, 0x4E, 0x5F)
 MUTED = RGBColor(0x5B, 0x67, 0x70)
@@ -145,7 +145,7 @@ def table(headers, rows, widths=None):
 footer = sec.footer
 fp = footer.paragraphs[0]
 fp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-r = fp.add_run("素养教师工作台 · 教师操作手册 v0.3.0   |   ")
+r = fp.add_run("素养教师工作台 · 教师操作手册 v0.3.1   |   ")
 run_font(r, 8, False, MUTED)
 fld = OxmlElement("w:fldSimple")
 fld.set(qn("w:instr"), "PAGE")
@@ -173,7 +173,7 @@ r = p.add_run("从下载安装，到生成第一份成长报告")
 run_font(r, 11.5, False, MUTED)
 p = doc.add_paragraph()
 p.paragraph_format.space_before = Pt(30)
-r = p.add_run("适用版本  v0.3.0")
+r = p.add_run("适用版本  v0.3.1")
 run_font(r, 11.5, True, ACCENT)
 p = doc.add_paragraph()
 r = p.add_run("2026-11-25  ·  教师简明版")
@@ -272,12 +272,12 @@ doc.add_heading("3.2 方式 B：BRAT（适合需要指定版本）", level=2)
 step(1, "先在社区插件里安装并启用 BRAT。")
 step(2, "打开 BRAT 设置 → Add Beta Plugin。")
 step(3, "填仓库：PBL-EDU/literacy-assessment。")
-step(4, "选择版本 0.3.0，安装并启用。")
+step(4, "选择版本 0.3.1，安装并启用。")
 para("BRAT 适合插件还没出现在市场、或你需要固定版本的情况。")
 
 doc.add_heading("3.3 方式 C：手动安装（最后选择）", level=2)
 para("如果前两种都不行，再从 GitHub Release 手动安装。此方式需要找到隐藏的 .obsidian 文件夹，对不熟悉电脑的老师较难。")
-step(1, "打开 https://github.com/PBL-EDU/literacy-assessment/releases/tag/0.3.0。")
+step(1, "打开 https://github.com/PBL-EDU/literacy-assessment/releases/tag/0.3.1。")
 step(2, "下载 main.js、manifest.json、styles.css 三个文件。")
 step(3, "打开你的库文件夹，进入 .obsidian → plugins。")
 step(4, "新建文件夹：literacy-assessment。")
@@ -321,6 +321,16 @@ table(["能力", "计费方式（官方参考）"], [
     ["OCR", "约 1.5 元 / 1,000 页"],
     ["语音识别 ASR", "约 0.78 元 / 小时（以官方活动价为准）"],
 ], widths=[6.5, 9.0])
+
+doc.add_heading("4.4  得到录音卡（长录音默认）", level=2)
+para("一节课通常 40–90 分钟，超过 DeepSeek 官方 ASR 的 120 秒限制。长课堂录音的默认做法是：用得到录音卡/录音台录制，让得到完成转写，再把转写同步到工作台。")
+step(1, "用得到录音卡或录音台录课，录完在得到 App 里等待「转写 / AI 总结」生成。")
+step(2, "打开 设置 → 素养评估 → 得到大脑。")
+step(3, "填 API Key 和 Client ID（需要得到大脑会员；在 https://www.biji.com/openapi 创建）。")
+step(4, "点「测试得到连接」，确认能读到最近的笔记。")
+step(5, "回到右侧栏，点「同步得到」。插件会先暂存到 05_导入/得到/，再按录音时间和内容匹配已有行动。")
+step(6, "匹配成功后，转写和总结会复制到行动的 素材/；原始录音保留在 得到/ 暂存区，不会移动。")
+callout("为什么长录音默认用得到", "DeepSeek 官方 ASR 只支持 ≤120 秒、≤8 MB 的短音频；长录音直接用插件转写会失败。得到录音卡/录音台负责长录音和转写，插件负责把结果匹配到行动、生成证据和报告。", GREEN)
 
 # ---------------- 5 ----------------
 doc.add_heading("5  界面与设计", level=1)
@@ -382,12 +392,12 @@ para("归档后行动从待办列表消失，但文件和报告保留在库中�
 
 # ---------------- 7 ----------------
 doc.add_heading("7  OCR / 语音 / 看图", level=1)
-para("v0.3.0 优先调用 DeepSeek 官方 API。三类能力分工不同，不要混用。")
+para("v0.3.1 优先调用 DeepSeek 官方 API。三类能力分工不同，不要混用。")
 table(["能力", "适合什么", "当前限制"], [
     ["图像理解", "课堂照片、学习单照片、作品照片", "走视觉模型 deepseek-flash；不能替代人工核对"],
     ["OCR", "PDF、Word、PowerPoint、扫描图片", "复杂版式/手写可能有误差；结果按页写入 转写/"],
     ["语音转写", "短语音、口述观察", "DeepSeek 官方只支持 WAV/Ogg、≤8 MB、≤120 秒，无时间戳"],
-    ["长录音转写", "整节课堂录音", "DeepSeek 官方不适合；改用 OpenAI 兼容转写或现有转写文字"],
+    ["长录音转写", "整节课堂录音", "默认用得到录音卡/录音台录制，再同步得到；不用插件内 ASR"],
 ], widths=[3.5, 6.0, 6.5])
 
 doc.add_heading("7.1 文档 OCR", level=2)
@@ -397,7 +407,7 @@ para("如果 OCR 结果不完整，先打开原文件核对；重要证据不要
 doc.add_heading("7.2 语音转写怎么选", level=2)
 table(["你的录音", "建议"], [
     ["WAV/Ogg，≤120 秒", "DeepSeek 官方（设置里选「DeepSeek 官方」）"],
-    ["MP3/M4A，或超过 2 分钟", "改用 OpenAI 兼容 /audio/transcriptions 服务"],
+    ["MP3/M4A，或超过 2 分钟", "默认用得到录音卡/录音台录制，再「同步得到」；已有其他转写服务可选 OpenAI 兼容"],
     ["得到大脑录音", "侧栏「同步得到」，直接用现成转写/总结"],
     ["已有逐字稿", "把 .md/.txt 放进 素材/ 或 观察/，不用再转写"],
 ], widths=[6.0, 9.0])
@@ -405,8 +415,6 @@ callout("没有转写也能做报告", "导师观察、学生文字复盘、学�
 
 doc.add_heading("7.3 不需要 DSH", level=2)
 para("DeepSeek Harness 的 OCR/看图/语音能力是给 Agent 工作流用的；本插件直接调用 DeepSeek 官方 HTTP API，教师不需要安装 DSH、不需要配置命令行。")
-
-page_break()
 
 # ---------------- 8 ----------------
 doc.add_heading("8  报告与对外版", level=1)
@@ -457,7 +465,7 @@ table(["现象", "先检查"], [
     ["AI 404/401", "Base URL 是否正确以 /v1 结尾；Key 是否完整；模型名是否正确"],
     ["看图失败", "视觉模型必须是 deepseek-flash，不要用 deepseek-chat"],
     ["OCR 失败/很慢", "文件是否 ≤100 MB、≤1000 页；复杂扫描件先拆分"],
-    ["录音没有转写", "DeepSeek 官方只支持短 WAV/Ogg；MP3/M4A/长录音改用其他转写"],
+    ["录音没有转写", "长录音默认用得到录音卡录制并「同步得到」；插件内 DeepSeek ASR 只支持短 WAV/Ogg"],
     ["报告很空", "观察/ 是否有导师复盘；教学目标是否具体；素材是否太少"],
     ["PDF 导出没有反应", "先打开报告 Markdown；确认 Obsidian 支持导出 PDF"],
 ], widths=[6.2, 9.3])
@@ -465,7 +473,7 @@ table(["现象", "先检查"], [
 doc.add_heading("12  更新与支持", level=1)
 para("更新方式：")
 bullet("社区插件：设置 → 第三方插件 → 检查更新。")
-bullet("BRAT：在 BRAT 里更新到 0.3.0。")
+bullet("BRAT：在 BRAT 里更新到 0.3.1。")
 bullet("手动安装：下载新版本三个文件，覆盖旧文件；不要删除数据目录。")
 para("发布页：https://github.com/PBL-EDU/literacy-assessment/releases")
 para("问题反馈：请附上 Obsidian 版本、插件版本、报错截图；不要附真实学生姓名或未脱敏素材。")
@@ -486,7 +494,7 @@ para("把这张清单贴在办公桌旁，第一次使用时逐项打勾，可�
 
 p = doc.add_paragraph()
 p.paragraph_format.space_before = Pt(16)
-r = p.add_run("版本：v0.3.0  ·  教师简明版  ·  2026-11-25")
+r = p.add_run("版本：v0.3.1  ·  教师简明版  ·  2026-11-25")
 run_font(r, 8.5, False, MUTED)
 p = doc.add_paragraph()
 r = p.add_run("项目：PBL-EDU/literacy-assessment  ·  详细说明见 docs/使用指南.md")
