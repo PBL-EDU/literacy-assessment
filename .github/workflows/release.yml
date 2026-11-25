@@ -37,6 +37,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            echo "Release ${GITHUB_REF_NAME} already exists; keeping assets."
+            exit 0
+          fi
           gh release create "${GITHUB_REF_NAME}" \
             "dist/literacy-assessment-${GITHUB_REF_NAME}.zip" \
             "release/literacy-teacher-workbench-manual-${GITHUB_REF_NAME}.pdf" \
