@@ -1,4 +1,4 @@
-name: Update manual release assets
+name: Update Obsidian release assets
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   update:
-    if: contains(github.event.head_commit.message, '[update-manual]')
+    if: contains(github.event.head_commit.message, '[update-release-assets]')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -27,16 +27,12 @@ jobs:
       - name: Build plugin
         run: npm run build
 
-      - name: Package release
-        run: |
-          mkdir -p release dist
-          cp main.js manifest.json styles.css LICENSE release/
-          cp "docs/素养教师工作台-操作手册-v0.4.0.pdf" "release/literacy-teacher-workbench-manual-0.4.0.pdf"
-          (cd release && zip -r "../dist/literacy-assessment-0.4.0.zip" .)
-
-      - name: Upload updated assets
+      - name: Attach Obsidian files directly
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload 0.4.0 "dist/literacy-assessment-0.4.0.zip" --clobber
-          gh release upload 0.4.0 "release/literacy-teacher-workbench-manual-0.4.0.pdf" --clobber
+          gh release upload 0.4.0 main.js manifest.json styles.css --clobber
+          # Obsidian's community validator downloads only these three files.
+          gh release delete-asset 0.4.0 literacy-assessment-0.4.0.zip --yes || true
+          gh release delete-asset 0.4.0 literacy-teacher-workbench-manual-0.4.0.pdf --yes || true
+          gh release edit 0.4.0 --notes-file "docs/release-notes-v0.4.0.md"

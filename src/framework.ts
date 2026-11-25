@@ -171,8 +171,8 @@ export async function listFrameworks(app: App, settings: AssessmentSettings): Pr
 }
 
 function compareVersion(a: string, b: string): number {
-  const av = a.split(/[.\-]/).map((n) => Number(n) || 0);
-  const bv = b.split(/[.\-]/).map((n) => Number(n) || 0);
+  const av = a.split(/[.-]/).map((n) => Number(n) || 0);
+  const bv = b.split(/[.-]/).map((n) => Number(n) || 0);
   for (let i = 0; i < Math.max(av.length, bv.length); i++) {
     const diff = (av[i] || 0) - (bv[i] || 0);
     if (diff) return diff;

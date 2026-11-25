@@ -4,6 +4,34 @@ A local-first Obsidian plugin for project-based literacy assessment. Educators c
 
 It also generates an internal version and a redacted external version of every report. The external version replaces student names with aliases and blurs photos.
 
+## English overview
+
+**Literacy Teacher Workbench** is a desktop-only Obsidian plugin for local-first, evidence-based literacy assessment in project-based learning.
+
+- Organize work as **projects → actions** (a class, workshop, or activity).
+- Collect notes, audio, video, images, PDFs, and Word documents in a local vault.
+- Let a configured AI provider transcribe, OCR, describe images, and extract evidence with source references.
+- Generate action, student-stage, project, and term reports.
+- In v0.4.0, each Markdown framework file is a behavior scale; projects bind a primary framework and optional supplementary frameworks.
+- Keep a separate student literacy profile with current levels, challenges, and history; the portfolio can embed the current profile section.
+- The same **Generate report** button becomes **Review report** after generation. A local mentor reviews only level changes and the overall assessment, not every evidence item.
+- PDF and redacted external reports are available only after mentor approval.
+- No server, no telemetry, and no data leaves the vault unless the teacher explicitly sends it to a configured AI provider.
+
+### Install
+
+Download `main.js`, `manifest.json`, and `styles.css` from the matching GitHub Release and place them in:
+
+```text
+<vault>/.obsidian/plugins/literacy-assessment/
+```
+
+Then enable **Literacy Teacher Workbench** in Obsidian's community plugins settings.
+
+### License
+
+AGPL-3.0-only. See [LICENSE](LICENSE) and [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md).
+
 ## 中文说明
 
 面向一线教育者的**本地素养评估工作台**：把一次项目 / 课堂 / 活动的素材收进本地文件夹，由 AI 整理（录音转写、照片说明），生成**行动成长报告**；按项目生成单同学项目报告与**项目总报告**；按学期/学年生成单同学阶段报告与**学期/学年总报告**。每份报告同时生成内部版和对外脱敏版。
@@ -102,7 +130,7 @@ npm run build
 
 在 Obsidian 设置 → 第三方插件里启用「素养评估」。
 
-想先试一下：从 [GitHub Releases](https://github.com/PBL-EDU/literacy-assessment/releases/tag/0.4.0) 下载 `main.js`、`manifest.json`、`styles.css`，放入插件目录；或使用 zip 安装包。不要把测试用的学生素材库提交到本仓库。
+想先试一下：从 [GitHub Releases](https://github.com/PBL-EDU/literacy-assessment/releases/tag/0.4.0) 直接下载 `main.js`、`manifest.json`、`styles.css`，放入插件目录。不要把测试用的学生素材库提交到本仓库。操作手册见 [docs/素养教师工作台-操作手册-v0.4.0.pdf](docs/素养教师工作台-操作手册-v0.4.0.pdf)。
 
 BRAT 用户添加仓库 `PBL-EDU/literacy-assessment`，选择 `0.4.0` 即可。
 

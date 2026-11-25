@@ -34,17 +34,25 @@
 
 ## 安装
 
-下载 `literacy-assessment-0.4.0.zip`，解压后把 `main.js`、`manifest.json`、`styles.css` 放入：
+在 Release assets 中直接下载：
+
+```text
+main.js
+manifest.json
+styles.css
+```
+
+放入：
 
 ```text
 <你的库>/.obsidian/plugins/literacy-assessment/
 ```
 
-重启 Obsidian，在「设置 → 第三方插件」启用。
+重启 Obsidian，在「设置 → 第三方插件」启用。Obsidian 社区版只下载这三个文件；不要把 zip 或手册当作插件安装包。
 
 ## 手册
 
-- `literacy-teacher-workbench-manual-0.4.0.pdf`
+- [操作手册 PDF](https://github.com/PBL-EDU/literacy-assessment/blob/0.4.0/docs/%E7%B4%A0%E5%85%BB%E6%95%99%E5%B8%88%E5%B7%A5%E4%BD%9C%E5%8F%B0-%E6%93%8D%E4%BD%9C%E6%89%8B%E5%86%8C-v0.4.0.pdf?raw=true)
 
 ## 已知限制
 
