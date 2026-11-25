@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  :root{
+    --ink:#1f2933;--muted:#6b7280;--line:#d9e2e8;--bg:#eef3f4;--paper:#ffffff;
+    --accent:#0f766e;--accent-soft:#e6f5f3;--accent-line:#b9e3de;--project:#f3f8f7;
+    --warn:#b45309;--warn-soft:#fef3c7;--ok:#166534;--ok-soft:#dcfce7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);font-family:"Microsoft YaHei","Segoe UI",sans-serif;color:var(--ink)}
+  .shell{width:1200px;height:760px;display:grid;grid-template-columns:390px 1fr;background:var(--paper);overflow:hidden}
+  .side{border-right:1px solid var(--line);padding:18px 16px;background:#fbfdfd;position:relative}
+  .brand{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+  .brand b{font-size:16px}
+  .brand span{font-size:12px;color:var(--muted)}
+  .sub{font-size:11px;color:var(--muted);margin-bottom:12px}
+  .toolbar{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:9px 0 11px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .tool-label{font-size:10px;letter-spacing:.08em;color:#8a97a3;font-weight:700;margin-bottom:4px}
+  .btnrow{display:flex;flex-wrap:wrap;gap:4px}
+  .btn{border:1px solid var(--line);background:#fff;color:#334155;border-radius:5px;padding:4px 7px;font-size:11px;white-space:nowrap}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .btn.soft{background:var(--accent-soft);color:#0b5f58;border-color:var(--accent-line)}
+  .project{margin-top:14px;background:var(--project);border-left:3px solid var(--accent);border-radius:8px;padding:10px 10px 8px 12px}
+  .p-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px}
+  .p-head i{font-family:Georgia,serif;color:var(--accent);font-size:13px;font-weight:700;margin-right:5px}
+  .p-head b{font-size:13px}
+  .p-meta{font-size:10px;color:var(--muted);margin-bottom:8px}
+  .action{background:#fff;border:1px solid var(--line);border-radius:7px;padding:10px;box-shadow:0 1px 0 rgba(15,23,42,.03)}
+  .a-title{font-size:12px;font-weight:700;line-height:1.5}
+  .a-meta{font-size:10px;color:var(--muted);margin:3px 0 8px}
+  .chips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:9px}
+  .chip{font-size:9px;padding:2px 5px;border-radius:4px;background:#f1f5f9;color:#475569}
+  .chip.ok{background:var(--ok-soft);color:var(--ok)}
+  .chip.warn{background:var(--warn-soft);color:var(--warn)}
+  .steps{display:flex;flex-wrap:wrap;gap:4px}
+  .step{font-size:9px;border:1px solid var(--line);border-radius:4px;padding:3px 5px;color:#475569;background:#fff}
+  .step.active{background:var(--accent);border-color:var(--accent);color:white;font-weight:700}
+  .step.disabled{color:#a8b3bd;background:#f8fafc}
+  .doc{padding:42px 55px;background:#fff;position:relative}
+  .doc .crumb{font-size:11px;color:#94a3b8;margin-bottom:22px}
+  .doc h1{font-size:27px;margin:0 0 6px;font-weight:700}
+  .doc .lead{color:var(--muted);font-size:12px;margin-bottom:26px}
+  .doc h2{font-size:16px;margin:24px 0 8px}
+  .doc p{font-size:12px;line-height:1.9;color:#374151}
+  .callout{background:#f8fafc;border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:6px;padding:12px 15px;font-size:12px;line-height:1.8;color:#334155}
+  .caption{position:absolute;right:24px;bottom:16px;font-size:10px;color:#94a3b8}
+  .tag{position:absolute;left:18px;top:18px;background:#0f172a;color:white;font-size:10px;padding:4px 8px;border-radius:4px;letter-spacing:.06em}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="side">
+    <div class="brand"><b>素养评估</b><span>⚙</span></div>
+    <div class="sub">项目 / 行动 / 素材 / 报告</div>
+    <div class="toolbar">
+      <div>
+        <div class="tool-label">行动</div>
+        <div class="btnrow"><span class="btn">新建项目</span><span class="btn">新建小组</span><span class="btn">新建同学</span><span class="btn primary">新建行动</span></div>
+      </div>
+      <div>
+        <div class="tool-label">管理</div>
+        <div class="btnrow"><span class="btn">查看导入</span><span class="btn soft">待我审核</span><span class="btn">素养档案</span><span class="btn">学期总报告</span></div>
+      </div>
+    </div>
+
+    <div class="project">
+      <div class="p-head"><div><i>01</i><b>社区小店调研项目</b></div><span style="font-size:10px;color:#0f766e">3 行动</span></div>
+      <div class="p-meta">项目 · 导师：林老师</div>
+      <div class="action">
+        <div class="a-title">2026-11-13 小店海报复盘</div>
+        <div class="a-meta">课堂 · 2026-11-13 · 林老师</div>
+        <div class="chips">
+          <span class="chip">素材 6</span><span class="chip">小组 1</span><span class="chip">同学 4</span><span class="chip">目标 3</span><span class="chip warn">待审核</span>
+        </div>
+        <div class="steps">
+          <span class="step">1 查看</span><span class="step">2 扫描</span><span class="step">3 AI 整理</span><span class="step active">4 审核报告</span><span class="step disabled">5 PDF</span><span class="step disabled">6 归档</span>
+        </div>
+      </div>
+    </div>
+    <div class="caption">界面示意 · 实际配色随 Obsidian 主题</div>
+  </aside>
+  <main class="doc">
+    <div class="tag">① 右侧栏</div>
+    <div class="crumb">社区小店调研项目 / 报告 / 行动成长报告</div>
+    <h1>小店海报复盘</h1>
+    <div class="lead">行动成长报告 · 2026-11-13 · 本地导师审核前</div>
+    <h2>一、行动概览</h2>
+    <p>本次行动围绕“小店海报为什么有效”展开。学生先独立观察三家小店，再在小组内比较颜色、文字和摆放位置。材料显示，学生能引用具体细节说明自己的判断，但在“听取同伴不同意见”上仍需要更多证据。</p>
+    <h2>二、教学目标与证据覆盖</h2>
+    <div class="callout">
+      <b>证据覆盖：部分</b><br>
+      目标 1「能说出海报为谁提供什么价值」有 4 条证据；目标 2「能在小组里承担角色」有 2 条证据；目标 3「能比较不同方案」暂未观察到。
+    </div>
+    <h2>三、待审核提示</h2>
+    <p>AI 提出 2 条 level 调整建议，需要本地导师确认；报告批准前 PDF 与对外版保持关闭。</p>
+    <div class="caption">界面示意 · 侧栏 + 报告工作区</div>
+  </main>
+</div>
+</body>
+</html>

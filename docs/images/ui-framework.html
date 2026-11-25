@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  :root{--ink:#1f2933;--muted:#6b7280;--line:#d9e2e8;--bg:#eef3f4;--paper:#fff;--accent:#0f766e;--soft:#e6f5f3;--line2:#b9e3de}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);font-family:"Microsoft YaHei","Segoe UI",sans-serif;color:var(--ink)}
+  .wrap{width:1200px;height:760px;display:flex;align-items:center;justify-content:center;position:relative}
+  .modal{width:820px;background:var(--paper);border:1px solid #cfdae1;border-radius:12px;box-shadow:0 18px 45px rgba(15,23,42,.16);overflow:hidden}
+  .m-head{padding:20px 26px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .m-head b{font-size:18px}.m-head span{color:#94a3b8;font-size:18px}
+  .m-body{padding:16px 26px 8px}
+  .field{margin-bottom:13px}
+  .label{font-size:12px;font-weight:700;margin-bottom:5px}
+  .desc{font-size:10px;color:var(--muted);margin-top:3px}
+  .input,.select{border:1px solid #cbd5e1;border-radius:6px;background:#fff;padding:8px 10px;font-size:12px;color:#334155;min-height:34px;display:flex;align-items:center;justify-content:space-between}
+  .select .caret{color:#64748b;font-size:10px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .heading{font-size:14px;font-weight:700;margin:18px 0 10px;padding-top:12px;border-top:1px solid var(--line)}
+  .toggle-row{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);border-radius:7px;padding:9px 11px;margin-bottom:7px;background:#fcfefe}
+  .toggle-row b{font-size:12px;display:block}
+  .toggle-row small{font-size:10px;color:var(--muted)}
+  .switch{width:30px;height:17px;background:#cbd5e1;border-radius:999px;position:relative;flex:none}
+  .switch:after{content:"";position:absolute;left:3px;top:3px;width:11px;height:11px;background:white;border-radius:50%}
+  .switch.on{background:var(--accent)}
+  .switch.on:after{left:16px}
+  .note{background:var(--soft);border:1px solid var(--line2);border-radius:7px;padding:9px 11px;font-size:10px;line-height:1.7;color:#0b5f58;margin:8px 0 4px}
+  .m-foot{padding:14px 26px 18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
+  .btn{border:1px solid #cbd5e1;background:#fff;border-radius:6px;padding:7px 13px;font-size:12px;color:#334155}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+  .badge{display:inline-block;font-size:9px;background:var(--soft);color:#0b5f58;border:1px solid var(--line2);border-radius:4px;padding:1px 5px;margin-left:6px}
+  .tag{position:absolute;left:22px;top:20px;background:#0f172a;color:#fff;font-size:10px;padding:4px 8px;border-radius:4px;letter-spacing:.06em}
+  .cap{position:absolute;right:24px;bottom:16px;font-size:10px;color:#94a3b8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag">② 项目绑定框架</div>
+  <div class="modal">
+    <div class="m-head"><b>新建项目</b><span>×</span></div>
+    <div class="m-body">
+      <div class="two">
+        <div class="field"><div class="label">项目名称</div><div class="input">社区小店调研项目</div></div>
+        <div class="field"><div class="label">类型</div><div class="select"><span>项目</span><span class="caret">▼</span></div></div>
+      </div>
+      <div class="two">
+        <div class="field"><div class="label">导师</div><div class="input">林老师</div></div>
+        <div class="field"><div class="label">行动次数</div><div class="input">3 次 · 进行中</div></div>
+      </div>
+      <div class="field"><div class="label">简介</div><div class="input" style="color:#94a3b8">这个项目要做什么、为什么做、持续多久</div></div>
+
+      <div class="heading">素养框架</div>
+      <div class="field">
+        <div class="label">主框架 <span class="badge">报告主体</span></div>
+        <div class="select"><span>白日梦行动素养框架 v0.4.0 · 5 个 level · 3 个目标</span><span class="caret">▼</span></div>
+        <div class="desc">报告主体、学生 level 默认展示使用这个框架。</div>
+      </div>
+      <div class="toggle-row"><div><b>补充框架：学校素养框架</b><small>v2026.1 · 只作为补充观察，不替代主框架</small></div><span class="switch on"></span></div>
+      <div class="toggle-row"><div><b>补充框架：职业启蒙框架</b><small>v1.2 · 可选</small></div><span class="switch"></span></div>
+      <div class="note">每个框架文件就是一份行为量表；量表表格决定 level 名称和数量，本插件不再硬编码 L1–L7。</div>
+    </div>
+    <div class="m-foot"><span class="btn">取消</span><span class="btn primary">创建项目</span></div>
+  </div>
+  <div class="cap">界面示意 · 实际配色随 Obsidian 主题</div>
+</div>
+</body>
+</html>

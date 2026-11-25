@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  :root{--ink:#1f2933;--muted:#6b7280;--line:#d9e2e8;--bg:#eef3f4;--paper:#fff;--accent:#0f766e;--soft:#e6f5f3;--line2:#b9e3de;--warn:#b45309;--warnbg:#fef3c7;--ok:#166534;--okbg:#dcfce7}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);font-family:"Microsoft YaHei","Segoe UI",sans-serif;color:var(--ink)}
+  .wrap{width:1200px;height:760px;display:flex;align-items:center;justify-content:center;position:relative}
+  .modal{width:1040px;height:680px;background:var(--paper);border:1px solid #cfdae1;border-radius:12px;box-shadow:0 18px 45px rgba(15,23,42,.16);display:flex;flex-direction:column;overflow:hidden}
+  .m-head{padding:18px 24px 12px;border-bottom:1px solid var(--line)}
+  .m-head .t{display:flex;justify-content:space-between;align-items:center}
+  .m-head b{font-size:17px}.m-head span{color:#94a3b8}
+  .m-head h2{font-size:14px;margin:10px 0 5px}
+  .m-head p{margin:0;font-size:10px;color:var(--muted);line-height:1.7}
+  .body{padding:12px 24px;display:grid;grid-template-columns:1.15fr .85fr;gap:16px;overflow:hidden;flex:1}
+  .h3{font-size:12px;font-weight:700;margin:0 0 8px}
+  .quality{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+  .q{background:#f8fafc;border:1px solid var(--line);border-radius:6px;padding:7px}
+  .q b{display:block;font-size:15px;color:var(--accent)}
+  .q span{font-size:9px;color:var(--muted)}
+  .row{border:1px solid var(--line);border-radius:7px;padding:9px 10px;margin-bottom:7px;background:#fff}
+  .row .who{display:flex;justify-content:space-between;align-items:center}
+  .row .who b{font-size:11px}
+  .row .who span{font-size:9px;color:var(--muted)}
+  .row .move{font-size:11px;margin:4px 0 2px}
+  .row .move em{font-style:normal;color:var(--accent);font-weight:700}
+  .row .reason{font-size:9px;color:var(--muted);line-height:1.6}
+  .controls{display:flex;align-items:center;gap:6px;margin-top:6px}
+  .select{border:1px solid #cbd5e1;border-radius:5px;background:#fff;padding:4px 7px;font-size:9px;color:#334155;min-width:96px}
+  .mini{border:1px solid #cbd5e1;border-radius:5px;background:#fff;padding:4px 7px;font-size:9px;color:#334155}
+  .feedback{background:#fffaf0;border:1px solid #fde68a;border-radius:7px;padding:9px 11px;font-size:9px;line-height:1.7;color:#78350f}
+  .feedback b{font-size:10px}
+  .feedback ul{margin:4px 0 6px 15px;padding:0}
+  .notes{border:1px solid #cbd5e1;border-radius:6px;padding:7px 9px;font-size:9px;color:#94a3b8;min-height:42px}
+  .foot{border-top:1px solid var(--line);padding:11px 24px;display:flex;justify-content:space-between;align-items:center;background:#fbfdfd}
+  .hint{font-size:9px;color:var(--muted)}
+  .btns{display:flex;gap:7px}
+  .btn{border:1px solid #cbd5e1;background:#fff;border-radius:6px;padding:6px 11px;font-size:10px;color:#334155}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+  .tag{position:absolute;left:22px;top:20px;background:#0f172a;color:#fff;font-size:10px;padding:4px 8px;border-radius:4px;letter-spacing:.06em}
+  .cap{position:absolute;right:24px;bottom:16px;font-size:10px;color:#94a3b8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag">③ 审核报告</div>
+  <div class="modal">
+    <div class="m-head">
+      <div class="t"><b>审核报告</b><span>×</span></div>
+      <h2>小店海报复盘 · 行动成长报告</h2>
+      <p>你只需要审核 level 调整和总体性评估。证据供查验，不需要逐条确认。</p>
+    </div>
+    <div class="body">
+      <div>
+        <div class="h3">Level 调整审核</div>
+        <div class="quality">
+          <div class="q"><b>6</b><span>来源</span></div>
+          <div class="q"><b>3</b><span>目标</span></div>
+          <div class="q"><b>1</b><span>低置信度</span></div>
+          <div class="q"><b>0</b><span>矛盾</span></div>
+        </div>
+        <div class="row">
+          <div class="who"><b>张三 · 与他人协作</b><span>CCD.3 · 置信度 82%</span></div>
+          <div class="move">当前 <b>L3</b> → 建议 <em>L4</em> ｜ 量表：符合</div>
+          <div class="reason">依据：两次小组分工中主动协调；海报复盘时听取不同意见。情境：课堂小组任务。</div>
+          <div class="controls"><span class="select">同意调整 ▼</span><span class="mini">最终 L4</span></div>
+        </div>
+        <div class="row">
+          <div class="who"><b>李四 · 感知与多角色</b><span>SDU.1 · 置信度 64%</span></div>
+          <div class="move">当前 <b>L2</b> → 建议 <em>L3</em> ｜ 量表：证据不足</div>
+          <div class="reason">依据：能识别店长/顾客角色；材料中没有出现“主动调整角色”的证据，建议先保持或补观察。</div>
+          <div class="controls"><span class="select">保持原 level ▼</span><span class="mini">最终 L2</span></div>
+        </div>
+        <div class="row">
+          <div class="who"><b>王五 · 付诸行动</b><span>LLM.4 · 置信度 58%</span></div>
+          <div class="move">当前 <b>L2</b> → 建议 <em>L3</em> ｜ 量表：未达到</div>
+          <div class="reason">依据：完成一步行动，但缺少持续迭代证据；低置信度不单独升级。</div>
+          <div class="controls"><span class="select">暂缓，补充证据 ▼</span><span class="mini">最终 L2</span></div>
+        </div>
+        <div class="h3" style="margin-top:10px">审核备注（可选）</div>
+        <div class="notes">下次补一次独立观察，重点看李四在小组冲突中的角色调整。</div>
+      </div>
+      <div>
+        <div class="h3">评估质量摘要</div>
+        <div class="feedback" style="background:#f8fafc;border-color:var(--line);color:#334155">
+          <b>证据缺口</b>
+          <ul><li>目标 3「比较不同方案」缺少独立证据。</li><li>1 条来源未标注时间戳。</li></ul>
+        </div>
+        <div class="h3" style="margin-top:12px">教学反馈</div>
+        <div class="feedback">
+          <b>课堂/行动带领</b>
+          <ul><li>下次先让学生独立写下判断，再进入小组比较。</li><li>给“听取不同意见”一个明确的角色卡。</li></ul>
+          <b>证据与信息收集</b>
+          <ul><li>补一张小组讨论的观察记录，标时间。</li></ul>
+          <b>下一次观察</b>
+          <ul><li>看学生是否能引用同伴观点并调整自己的方案。</li></ul>
+        </div>
+      </div>
+    </div>
+    <div class="foot">
+      <div class="hint">批准后才开放 PDF、对外版；退回修改会保留当前草稿。</div>
+      <div class="btns"><span class="btn">退回修改</span><span class="btn primary">批准报告</span></div>
+    </div>
+  </div>
+  <div class="cap">界面示意 · 实际配色随 Obsidian 主题</div>
+</div>
+</body>
+</html>

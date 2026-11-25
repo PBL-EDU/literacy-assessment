@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  :root{--ink:#1f2933;--muted:#6b7280;--line:#d9e2e8;--bg:#eef3f4;--paper:#fff;--accent:#0f766e;--soft:#e6f5f3;--line2:#b9e3de}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);font-family:"Microsoft YaHei","Segoe UI",sans-serif;color:var(--ink)}
+  .wrap{width:1200px;height:760px;padding:42px 48px;position:relative}
+  .title{font-size:18px;font-weight:700;margin-bottom:6px}
+  .sub{font-size:11px;color:var(--muted);margin-bottom:20px}
+  .panes{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  .pane{background:var(--paper);border:1px solid #cfdae1;border-radius:9px;box-shadow:0 5px 18px rgba(15,23,42,.06);padding:17px 18px;min-height:510px}
+  .pane h3{font-size:12px;margin:0 0 4px}
+  .path{font-size:9px;color:#94a3b8;font-family:Consolas,monospace;margin-bottom:12px}
+  .note{font-size:10px;line-height:1.9;color:#334155}
+  .note h4{font-size:14px;margin:0 0 3px}
+  .note .meta{font-size:8px;color:#94a3b8;margin-bottom:12px}
+  .note h5{font-size:10px;margin:10px 0 4px}
+  .embed{border:1px dashed var(--line2);background:var(--soft);border-radius:6px;padding:9px 10px;margin:8px 0}
+  .embed code{font-family:Consolas,monospace;font-size:8px;color:#0b5f58;display:block;margin-bottom:7px}
+  table{border-collapse:collapse;width:100%;font-size:8px}
+  th,td{border:1px solid #dbe4e9;padding:4px 5px;text-align:left;vertical-align:top}
+  th{background:#f1f5f9;color:#475569;font-weight:700}
+  .accent{color:var(--accent);font-weight:700}
+  .arrow{position:absolute;left:50%;top:300px;transform:translateX(-50%);font-size:28px;color:var(--accent);background:var(--bg);padding:4px 8px}
+  .tag{position:absolute;left:22px;top:16px;background:#0f172a;color:#fff;font-size:10px;padding:4px 8px;border-radius:4px;letter-spacing:.06em}
+  .cap{position:absolute;right:24px;bottom:14px;font-size:10px;color:#94a3b8}
+  .pill{display:inline-block;font-size:8px;background:var(--soft);color:#0b5f58;border:1px solid var(--line2);border-radius:4px;padding:1px 4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag">④ 素养档案与作品集同步</div>
+  <div class="title">学生作品集只显示结果，完整证据在素养档案</div>
+  <div class="sub">level 批准后，插件更新 素养档案.md，作品集块引用同步刷新。</div>
+  <div class="panes">
+    <div class="pane">
+      <h3>作品集 · 张三.md</h3>
+      <div class="path">03_学员/张三/张三.md</div>
+      <div class="note">
+        <h4>张三</h4>
+        <div class="meta">同学档案 · 参与社区小店调研项目</div>
+        <h5>参与活动</h5>
+        <div>2026-11-06 社区小店调研</div>
+        <div>2026-11-13 小店海报复盘</div>
+        <h5>素养档案</h5>
+        <div class="embed">
+          <code>&lt;!-- literacy-profile:start --&gt;<br>![[03_学员/张三/素养档案#当前素养]]<br>&lt;!-- literacy-profile:end --&gt;</code>
+          <table>
+            <tr><th>框架</th><th>目标</th><th>当前 level</th></tr>
+            <tr><td>白日梦行动</td><td>CCD.3 与他人协作</td><td class="accent">L4</td></tr>
+            <tr><td>白日梦行动</td><td>SDU.1 感知与多角色</td><td>L2</td></tr>
+          </table>
+        </div>
+        <h5>阶段报告</h5>
+        <div>阶段成长报告_2026秋</div>
+      </div>
+    </div>
+
+    <div class="pane">
+      <h3>素养档案 · 张三的素养档案</h3>
+      <div class="path">03_学员/张三/素养档案.md</div>
+      <div class="note">
+        <h4>张三的素养档案</h4>
+        <div class="meta">当前 level · 素养挑战 · 历史</div>
+        <h5>当前素养</h5>
+        <table>
+          <tr><th>框架</th><th>目标</th><th>level</th><th>审核人</th></tr>
+          <tr><td>白日梦行动</td><td>CCD.3 与他人协作</td><td class="accent">L4</td><td>林老师</td></tr>
+          <tr><td>白日梦行动</td><td>SDU.1 感知与多角色</td><td>L2</td><td>林老师</td></tr>
+        </table>
+        <h5>素养挑战</h5>
+        <table>
+          <tr><th>日期</th><th>行动</th><th>挑战</th><th>变化</th></tr>
+          <tr><td>11-13</td><td>小店海报复盘</td><td>听取不同意见并调整方案</td><td>L3 → L4</td></tr>
+        </table>
+        <h5>历史</h5>
+        <table>
+          <tr><th>日期</th><th>目标</th><th>报告</th></tr>
+          <tr><td>11-13</td><td>CCD.3</td><td>小店海报复盘报告</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="arrow">⇄</div>
+  <div class="cap">界面示意 · 块引用效果需在你的 Obsidian 主题中实测</div>
+</div>
+</body>
+</html>

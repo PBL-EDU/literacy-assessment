@@ -1,3 +1,4 @@
+import os
 from docx import Document
 from docx.shared import Pt, Cm, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -86,6 +87,21 @@ def callout(title, body, fill=LIGHT, color=ACCENT):
     r2 = p.add_run(body)
     run_font(r2, 9.5, False, RGBColor(0x33, 0x33, 0x33))
     shade(p, fill)
+
+
+def figure(filename, caption, width=15.4):
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "docs", "images", filename)
+    doc.add_picture(path, width=Cm(width))
+    p = doc.paragraphs[-1]
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p.paragraph_format.space_before = Pt(4)
+    p.paragraph_format.space_after = Pt(2)
+    cap = doc.add_paragraph()
+    cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    cap.paragraph_format.space_after = Pt(8)
+    r = cap.add_run(caption)
+    run_font(r, 8.5, False, MUTED)
+    r.italic = True
 
 def bullet(text, level=0):
     p = doc.add_paragraph(style="List Bullet")
@@ -351,6 +367,7 @@ table(["顺序", "按钮", "完成后得到"], [
     ["⑥", "归档", "从待办隐藏，文件保留"],
 ], widths=[1.6, 4.2, 9.5])
 callout("为什么有门禁", "前一步没有完成时，后面的按钮灰掉，避免在素材没扫描、没整理时生成空报告。这是给新手的保护，不是限制。", GREEN)
+figure("ui-sidebar.png", "图 5-1 右侧栏与行动卡：生成报告后，第 ④ 步变为「审核报告」。界面示意，实际配色随 Obsidian 主题。")
 
 doc.add_heading("5.3 五个设计原则", level=2)
 for item in [
@@ -373,6 +390,7 @@ table(["目标ID", "目标", "维度", "L1", "L2", "L3", "L4"], [
     ["SDU.1", "感知与多角色", "自我认知", "能说出感受", "能识别角色", "能理解差异", "能调整角色"],
 ], widths=[2.0, 3.0, 2.4, 1.8, 1.8, 1.8, 1.8])
 callout("组织用户", "组织强制框架先以签名本地 bundle + hash 校验；被修改或缺失时，正式评估会被阻断。自动下载等服务器恢复后再做。", GREEN)
+figure("ui-framework.png", "图 5-2 新建项目时选择主框架和补充框架。界面示意。")
 
 doc.add_heading("5.5 学生素养档案", level=2)
 para("每个学生有两个文件：")
@@ -383,6 +401,7 @@ p = doc.add_paragraph()
 r = p.add_run("![[03_学员/<学生>/素养档案#当前素养]]")
 run_font(r, 9.5, True, ACCENT)
 para("level 批准后，插件更新素养档案；作品集里的块显示最新表格。块引用效果需实际使用确认。")
+figure("ui-profile.png", "图 5-3 作品集与素养档案：块引用显示当前素养，完整挑战与历史留在素养档案。界面示意。")
 
 doc.add_heading("5.6 生成、审核、教学反馈", level=2)
 para("生成报告后，报告状态是「待审核」。同一按钮变为「审核报告」。本地导师只审核两件事：")
@@ -390,6 +409,7 @@ bullet("学生 level 是否调整。")
 bullet("总体性评估是否通过。")
 para("证据供导师查验，不要求逐条确认。未批准：PDF 置灰、不生成对外版、不推送服务器。")
 para("每次评估还会生成独立教学反馈：<行动>/报告/教学反馈_<行动>.md；项目/学期同理。教学反馈包含带领建议、证据收集建议、下一次观察重点。")
+figure("ui-review.png", "图 5-4 审核报告：逐条审核 level 调整和总体性评估；证据供查验，不要求逐条确认。界面示意。")
 
 page_break()
 

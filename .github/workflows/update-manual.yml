@@ -1,0 +1,42 @@
+name: Update manual release assets
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    if: contains(github.event.head_commit.message, '[update-manual]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build plugin
+        run: npm run build
+
+      - name: Package release
+        run: |
+          mkdir -p release dist
+          cp main.js manifest.json styles.css LICENSE release/
+          cp "docs/素养教师工作台-操作手册-v0.4.0.pdf" "release/literacy-teacher-workbench-manual-0.4.0.pdf"
+          (cd release && zip -r "../dist/literacy-assessment-0.4.0.zip" .)
+
+      - name: Upload updated assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload 0.4.0 "dist/literacy-assessment-0.4.0.zip" --clobber
+          gh release upload 0.4.0 "release/literacy-teacher-workbench-manual-0.4.0.pdf" --clobber
