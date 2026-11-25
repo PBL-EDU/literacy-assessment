@@ -53,7 +53,7 @@ export class LiteracyView extends ItemView {
       (activity) => activity.meta.status !== ARCHIVED,
     );
     if (!activities.length) {
-      const empty = container.createEl("div", { cls: "la-empty" });
+      const empty = container.createDiv({ cls: "la-empty" });
       empty.setText("没有进行中的行动。点「新建行动」创建一次课堂/活动，或到文件目录查看已归档行动。");
       return;
     }
@@ -78,16 +78,16 @@ export class LiteracyView extends ItemView {
   }
 
   private renderHeader(container: HTMLElement): void {
-    const header = container.createEl("div", { cls: "la-header" });
-    const titleBox = header.createEl("div", { cls: "la-title-box" });
-    titleBox.createEl("div", { cls: "la-title", text: "素养评估" });
-    titleBox.createEl("div", { cls: "la-sub", text: "项目 → 行动 → 素材与报告" });
+    const header = container.createDiv({ cls: "la-header" });
+    const titleBox = header.createDiv({ cls: "la-title-box" });
+    titleBox.createDiv({ cls: "la-title", text: "素养评估" });
+    titleBox.createDiv({ cls: "la-sub", text: "项目 → 行动 → 素材与报告" });
 
     const refresh = header.createEl("button", { cls: "la-icon-btn", text: "↻" });
     refresh.title = "刷新";
     refresh.onclick = () => void this.render();
 
-    const toolbar = container.createEl("div", { cls: "la-toolbar" });
+    const toolbar = container.createDiv({ cls: "la-toolbar" });
     const actionGroup = this.createToolGroup(toolbar, "行动");
     const newProject = actionGroup.createEl("button", { cls: "la-btn", text: "新建项目" });
     newProject.onclick = () => this.plugin.openCreateSeries();
@@ -112,16 +112,16 @@ export class LiteracyView extends ItemView {
     const termReport = manageGroup.createEl("button", { cls: "la-btn", text: "学期总报告" });
     termReport.onclick = () => void this.plugin.runTermOverview();
 
-    container.createEl("div", {
+    container.createDiv({
       cls: "la-sub",
       text: "只显示进行中的行动；归档后从列表隐藏。",
     });
   }
 
   private createToolGroup(parent: HTMLElement, label: string): HTMLElement {
-    const group = parent.createEl("div", { cls: "la-tool-group" });
-    group.createEl("div", { cls: "la-tool-label", text: label });
-    const buttons = group.createEl("div", { cls: "la-tool-buttons" });
+    const group = parent.createDiv({ cls: "la-tool-group" });
+    group.createDiv({ cls: "la-tool-label", text: label });
+    const buttons = group.createDiv({ cls: "la-tool-buttons" });
     return buttons;
   }
 
@@ -131,13 +131,13 @@ export class LiteracyView extends ItemView {
     activities: ActivityRecord[],
     projectIndex: number,
   ): Promise<void> {
-    const section = container.createEl("div", { cls: "la-project" });
-    const header = section.createEl("div", { cls: "la-project-header" });
-    const titleBox = header.createEl("div", { cls: "la-project-title-box" });
+    const section = container.createDiv({ cls: "la-project" });
+    const header = section.createDiv({ cls: "la-project-header" });
+    const titleBox = header.createDiv({ cls: "la-project-title-box" });
     const indexLabel = projectName === "暂不归属" ? "—" : String(projectIndex).padStart(2, "0");
-    titleBox.createEl("div", { cls: "la-project-index", text: indexLabel });
-    titleBox.createEl("div", { cls: "la-project-title", text: projectName });
-    titleBox.createEl("div", {
+    titleBox.createDiv({ cls: "la-project-index", text: indexLabel });
+    titleBox.createDiv({ cls: "la-project-title", text: projectName });
+    titleBox.createDiv({
       cls: "la-project-meta",
       text: `${activities.length} 个进行中的行动`,
     });
@@ -149,19 +149,19 @@ export class LiteracyView extends ItemView {
       overview.onclick = () => void this.plugin.runProjectOverview(projectName);
     }
 
-    const body = section.createEl("div", { cls: "la-project-body" });
+    const body = section.createDiv({ cls: "la-project-body" });
     for (const [index, activity] of activities.entries()) {
       await this.renderAction(body, activity, `${indexLabel}.${index + 1}`);
     }
   }
 
   private async renderAction(container: HTMLElement, activity: ActivityRecord, sequence: string): Promise<void> {
-    const card = container.createEl("div", { cls: "la-card la-action-card" });
-    card.createEl("div", { cls: "la-action-seq", text: sequence });
-    const title = card.createEl("div", { cls: "la-card-title", text: activity.meta.title });
+    const card = container.createDiv({ cls: "la-card la-action-card" });
+    card.createDiv({ cls: "la-action-seq", text: sequence });
+    const title = card.createDiv({ cls: "la-card-title", text: activity.meta.title });
     title.onclick = () => void this.plugin.openActivity(activity);
 
-    card.createEl("div", {
+    card.createDiv({
       cls: "la-meta",
       text: `${activity.meta.type} · ${activity.meta.date} · ${activity.meta.mentor || "未填导师"}`,
     });
@@ -195,20 +195,20 @@ export class LiteracyView extends ItemView {
       .map(([kind, count]) => `${kindLabel(kind)} ${count}`)
       .join(" · ");
 
-    const chips = card.createEl("div", { cls: "la-chips" });
+    const chips = card.createDiv({ cls: "la-chips" });
     if (activity.meta.groups.length) {
-      chips.createEl("span", { cls: "la-chip", text: `小组 ${activity.meta.groups.length}` });
+      chips.createSpan({ cls: "la-chip", text: `小组 ${activity.meta.groups.length}` });
     }
-    chips.createEl("span", { cls: "la-chip", text: `素材 ${artifacts.length}` });
-    if (kindText) chips.createEl("span", { cls: "la-chip", text: kindText });
-    chips.createEl("span", { cls: "la-chip", text: `同学 ${activity.meta.participants.length}` });
-    chips.createEl("span", { cls: "la-chip", text: `目标 ${activity.meta.goals.length}` });
-    chips.createEl("span", {
+    chips.createSpan({ cls: "la-chip", text: `素材 ${artifacts.length}` });
+    if (kindText) chips.createSpan({ cls: "la-chip", text: kindText });
+    chips.createSpan({ cls: "la-chip", text: `同学 ${activity.meta.participants.length}` });
+    chips.createSpan({ cls: "la-chip", text: `目标 ${activity.meta.goals.length}` });
+    chips.createSpan({
       cls: hasReport ? "la-chip ok" : "la-chip warn",
       text: hasReport ? "报告 ✓" : "未生成报告",
     });
     if (review) {
-      chips.createEl("span", {
+      chips.createSpan({
         cls: review.status === "approved" ? "la-chip ok" : review.status === "pending_review" ? "la-chip warn" : "la-chip",
         text:
           review.status === "approved"
@@ -220,9 +220,9 @@ export class LiteracyView extends ItemView {
                 : "旧报告",
       });
     }
-    if (pdfExported) chips.createEl("span", { cls: "la-chip ok", text: "PDF ✓" });
+    if (pdfExported) chips.createSpan({ cls: "la-chip ok", text: "PDF ✓" });
     if (hasExternalReport) {
-      const externalChip = chips.createEl("span", { cls: "la-chip ok la-chip-link", text: "对外版 ✓" });
+      const externalChip = chips.createSpan({ cls: "la-chip ok la-chip-link", text: "对外版 ✓" });
       externalChip.onclick = () => void this.plugin.openPath(externalReportPath);
     }
 
@@ -234,7 +234,7 @@ export class LiteracyView extends ItemView {
     const canReport = hasManifest && (!hasMedia || organized);
     const canArchive = hasReport && pdfExported && approved;
 
-    const actions = card.createEl("div", { cls: "la-row-actions" });
+    const actions = card.createDiv({ cls: "la-row-actions" });
     this.addStepButton(actions, "1 查看", true, "打开行动笔记", () => void this.plugin.openActivity(activity));
     this.addStepButton(actions, "2 扫描", true, "扫描素材，生成素材清单", () => void this.plugin.runScan(activity));
     this.addStepButton(

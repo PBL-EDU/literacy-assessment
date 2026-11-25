@@ -141,8 +141,8 @@ export class NewActivityModal extends Modal {
         });
       });
 
-    const groupBox = contentEl.createEl("div", { cls: "la-choice" });
-    groupBox.createEl("div", { cls: "la-choice-title", text: "参与小组（可多选）" });
+    const groupBox = contentEl.createDiv({ cls: "la-choice" });
+    groupBox.createDiv({ cls: "la-choice-title", text: "参与小组（可多选）" });
     if (!this.options.groups.length) {
       groupBox.createEl("p", { cls: "la-hint", text: "还没有小组；可先运行「新建小组」，或直接在下面勾选学员。" });
     }
@@ -154,11 +154,11 @@ export class NewActivityModal extends Modal {
         if (checkbox.checked) this.selectedGroups.add(group.name);
         else this.selectedGroups.delete(group.name);
       });
-      label.createEl("span", { text: `${group.name}（${group.members.length} 人）` });
+      label.createSpan({ text: `${group.name}（${group.members.length} 人）` });
     }
 
-    const studentBox = contentEl.createEl("div", { cls: "la-choice" });
-    studentBox.createEl("div", { cls: "la-choice-title", text: "参与学员（可多选；选小组会自动带上成员）" });
+    const studentBox = contentEl.createDiv({ cls: "la-choice" });
+    studentBox.createDiv({ cls: "la-choice-title", text: "参与学员（可多选；选小组会自动带上成员）" });
     if (!this.options.students.length) {
       studentBox.createEl("p", { cls: "la-hint", text: "还没有学员；可在下面「新增学员」里输入。" });
     }
@@ -170,7 +170,7 @@ export class NewActivityModal extends Modal {
         if (checkbox.checked) this.selectedStudents.add(student);
         else this.selectedStudents.delete(student);
       });
-      label.createEl("span", { text: student });
+      label.createSpan({ text: student });
     }
 
     new Setting(contentEl)
@@ -183,8 +183,8 @@ export class NewActivityModal extends Modal {
         area.inputEl.rows = 2;
       });
 
-    const goalBox = contentEl.createEl("div", { cls: "la-choice" });
-    goalBox.createEl("div", { cls: "la-choice-title", text: "教学目标（可多选）" });
+    const goalBox = contentEl.createDiv({ cls: "la-choice" });
+    goalBox.createDiv({ cls: "la-choice-title", text: "教学目标（可多选）" });
     for (const goal of this.options.goals) {
       const label = goalBox.createEl("label");
       const checkbox = label.createEl("input");
@@ -193,7 +193,7 @@ export class NewActivityModal extends Modal {
         if (checkbox.checked) this.selectedGoals.add(goal);
         else this.selectedGoals.delete(goal);
       });
-      label.createEl("span", { text: goal });
+      label.createSpan({ text: goal });
     }
     if (!this.options.goals.length) {
       goalBox.createEl("p", { cls: "la-hint", text: "还没有可复用的目标；可在下面新增。" });
@@ -458,8 +458,8 @@ export class NewGroupModal extends Modal {
         });
       });
 
-    const memberBox = contentEl.createEl("div", { cls: "la-choice" });
-    memberBox.createEl("div", { cls: "la-choice-title", text: "固定成员" });
+    const memberBox = contentEl.createDiv({ cls: "la-choice" });
+    memberBox.createDiv({ cls: "la-choice-title", text: "固定成员" });
     if (!this.students.length) {
       memberBox.createEl("p", { cls: "la-hint", text: "还没有学员；可以先在下面新增。" });
     }
@@ -471,7 +471,7 @@ export class NewGroupModal extends Modal {
         if (checkbox.checked) this.selectedMembers.add(student);
         else this.selectedMembers.delete(student);
       });
-      label.createEl("span", { text: student });
+      label.createSpan({ text: student });
     }
 
     new Setting(contentEl)
@@ -586,8 +586,8 @@ export class ProgressModal extends Modal {
     this.modalEl.addClass("la-progress");
     this.titleEl.setText(this.title);
     const { contentEl } = this;
-    this.statusEl = contentEl.createEl("div", { cls: "la-progress-status", text: "准备中…" });
-    this.logEl = contentEl.createEl("div", { cls: "la-progress-log" });
+    this.statusEl = contentEl.createDiv({ cls: "la-progress-status", text: "准备中…" });
+    this.logEl = contentEl.createDiv({ cls: "la-progress-log" });
     new Setting(contentEl).addButton((button) =>
       button.setButtonText("中止").onClick(() => {
         this.closed = true;
@@ -606,7 +606,7 @@ export class ProgressModal extends Modal {
 
   log(message: string): void {
     if (!this.logEl) return;
-    this.logEl.createEl("div", { cls: "la-progress-line", text: message });
+    this.logEl.createDiv({ cls: "la-progress-line", text: message });
     this.logEl.scrollTop = this.logEl.scrollHeight;
   }
 
@@ -643,7 +643,7 @@ export class ConfirmUploadModal extends Modal {
     checkbox.addEventListener("change", () => {
       this.confirmed = checkbox.checked;
     });
-    row.createEl("span", {
+    row.createSpan({
       text: "我确认已取得必要的监护人/机构同意，并了解这些素材会发送到设置里配置的 AI 服务；报告由我确认后再使用。",
     });
 

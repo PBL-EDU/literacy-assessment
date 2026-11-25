@@ -41,7 +41,7 @@ export class PendingReviewsModal extends Modal {
     for (const item of this.items) {
       const row = contentEl.createDiv({ cls: "la-review-row" });
       row.createEl("strong", { text: item.title });
-      row.createEl("div", { cls: "setting-item-description", text: item.subtitle });
+      row.createDiv({ cls: "setting-item-description", text: item.subtitle });
       const button = row.createEl("button", { cls: "mod-cta", text: "打开审核" });
       button.onclick = () => {
         this.close();
@@ -94,8 +94,8 @@ export class ReviewModal extends Modal {
     if (quality) {
       contentEl.createEl("h3", { text: "评估质量摘要" });
       const summary = contentEl.createDiv();
-      summary.createEl("div", { text: `来源：${quality.source_count} ｜ 目标：${quality.goal_count} ｜ 低置信度：${quality.low_confidence_count} ｜ 矛盾：${quality.contradiction_count}` });
-      if (quality.gaps.length) summary.createEl("div", { text: `证据缺口：${quality.gaps.join("；")}` });
+      summary.createDiv({ text: `来源：${quality.source_count} ｜ 目标：${quality.goal_count} ｜ 低置信度：${quality.low_confidence_count} ｜ 矛盾：${quality.contradiction_count}` });
+      if (quality.gaps.length) summary.createDiv({ text: `证据缺口：${quality.gaps.join("；")}` });
     }
 
     if (this.review.teaching_feedback) {
@@ -121,14 +121,14 @@ export class ReviewModal extends Modal {
       const p = state.proposal;
       const card = contentEl.createDiv({ cls: "la-review-card" });
       card.createEl("strong", { text: `${p.student} · ${p.goal_title || p.goal}` });
-      card.createEl("div", {
+      card.createDiv({
         cls: "setting-item-description",
         text: `当前 ${p.current_level} → 建议 ${p.proposed_level} ｜ 置信度 ${Math.round(p.confidence * 100)}% ｜ 量表：${p.met}`,
       });
-      if (p.reason) card.createEl("div", { text: `依据：${p.reason}` });
-      if (p.context_note) card.createEl("div", { cls: "setting-item-description", text: `情境：${p.context_note}` });
+      if (p.reason) card.createDiv({ text: `依据：${p.reason}` });
+      if (p.context_note) card.createDiv({ cls: "setting-item-description", text: `情境：${p.context_note}` });
       if (p.evidence_refs.length) {
-        card.createEl("div", { cls: "setting-item-description", text: `关联证据：${p.evidence_refs.slice(0, 5).join("；")}` });
+        card.createDiv({ cls: "setting-item-description", text: `关联证据：${p.evidence_refs.slice(0, 5).join("；")}` });
       }
 
       new Setting(card)

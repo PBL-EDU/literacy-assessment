@@ -600,12 +600,12 @@ export class LiteracySettingTab extends PluginSettingTab {
     for (const framework of frameworks) {
       const row = container.createDiv({ cls: "la-framework-row" });
       row.createEl("strong", { text: `${framework.name}  v${framework.version}` });
-      row.createEl("div", {
+      row.createDiv({
         cls: "setting-item-description",
         text: `${framework.id} · ${framework.levels.length} 个 level · ${framework.goals.length} 个目标`,
       });
       if (framework.errors.length) {
-        row.createEl("div", {
+        row.createDiv({
           cls: "setting-item-description",
           text: `⚠ ${framework.errors.join("；")}`,
         });
