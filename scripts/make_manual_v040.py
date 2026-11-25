@@ -269,7 +269,7 @@ step(3, "位置选一个你容易找到、会自动备份的本地文件夹，�
 step(4, "点“创建”。")
 callout("重要", "库就是你的全部数据。以后换电脑/备份，复制整个库文件夹即可。不要把库放在临时目录或系统盘深处。", WARN)
 para("进入库后，界面是英文还是中文取决于你的 Obsidian 语言设置。可以到 Settings → General → Language 选择中文。")
-figure("ob-sidebar-actual.png", "图 1-1 Obsidian 实机界面：右侧「素养评估」栏、项目分组和行动卡。")
+figure("ob-sidebar-crop.png", "图 1-1 Obsidian 实机界面：右侧「素养评估」栏、项目分组和行动卡。", width=10.5)
 
 page_break()
 
@@ -390,7 +390,7 @@ table(["目标ID", "目标", "维度", "L1", "L2", "L3", "L4"], [
     ["SDU.1", "感知与多角色", "自我认知", "能说出感受", "能识别角色", "能理解差异", "能调整角色"],
 ], widths=[2.0, 3.0, 2.4, 1.8, 1.8, 1.8, 1.8])
 callout("组织用户", "组织强制框架先以签名本地 bundle + hash 校验；被修改或缺失时，正式评估会被阻断。自动下载等服务器恢复后再做。", GREEN)
-figure("ob-framework-actual.png", "图 5-2 Obsidian 实机界面：新建项目时选择主框架；项目创建后可再补补充框架。")
+figure("ob-framework-crop.png", "图 5-2 Obsidian 实机界面：新建项目时选择主框架；项目创建后可再补补充框架。", width=15.0)
 
 doc.add_heading("5.5 学生素养档案", level=2)
 para("每个学生有两个文件：")
@@ -409,7 +409,7 @@ bullet("学生 level 是否调整。")
 bullet("总体性评估是否通过。")
 para("证据供导师查验，不要求逐条确认。未批准：PDF 置灰、不生成对外版、不推送服务器。")
 para("每次评估还会生成独立教学反馈：<行动>/报告/教学反馈_<行动>.md；项目/学期同理。教学反馈包含带领建议、证据收集建议、下一次观察重点。")
-figure("ob-review-actual.png", "图 5-4 Obsidian 实机界面：审核报告。逐条审核 level 调整和总体性评估；证据供查验，不要求逐条确认。")
+figure("ob-review-crop.png", "图 5-4 Obsidian 实机界面：审核报告。逐条审核 level 调整和总体性评估；证据供查验，不要求逐条确认。", width=15.0)
 
 page_break()
 
