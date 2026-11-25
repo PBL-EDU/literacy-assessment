@@ -1,218 +1,98 @@
 # Literacy Teacher Workbench
 
-A local-first Obsidian plugin for project-based literacy assessment. Educators collect classroom materials, recordings, photos, and observation notes in a project → action structure. The plugin transcribes audio, describes images, extracts evidence, and produces evidence-linked action reports, per-student project reports, project overviews, and term reports.
+A local-first Obsidian plugin for evidence-based literacy assessment in project-based learning.
 
-It also generates an internal version and a redacted external version of every report. The external version replaces student names with aliases and blurs photos.
+Literacy Teacher Workbench helps educators collect classroom materials, recordings, photos, and observation notes in a **project → action** structure. It uses the AI provider configured by the teacher to transcribe audio, OCR documents, describe images, extract evidence, and draft evidence-linked reports. Materials and reports stay in the local vault.
 
-## English overview
-
-**Literacy Teacher Workbench** is a desktop-only Obsidian plugin for local-first, evidence-based literacy assessment in project-based learning.
+## What it does
 
 - Organize work as **projects → actions** (a class, workshop, or activity).
-- Collect notes, audio, video, images, PDFs, and Word documents in a local vault.
-- Let a configured AI provider transcribe, OCR, describe images, and extract evidence with source references.
-- Generate action, student-stage, project, and term reports.
-- In v0.4.0, each Markdown framework file is a behavior scale; projects bind a primary framework and optional supplementary frameworks.
-- Keep a separate student literacy profile with current levels, challenges, and history; the portfolio can embed the current profile section.
-- The same **Generate report** button becomes **Review report** after generation. A local mentor reviews only level changes and the overall assessment, not every evidence item.
-- PDF and redacted external reports are available only after mentor approval.
-- No server, no telemetry, and no data leaves the vault unless the teacher explicitly sends it to a configured AI provider.
+- Collect notes, audio, video, images, PDFs, Word documents, and student work in one local vault.
+- Run AI organization: transcription, OCR, image descriptions, and evidence extraction with source references.
+- Generate:
+  - action growth reports;
+  - per-student stage reports;
+  - per-student project reports;
+  - project overview reports;
+  - term / school-year reports.
+- Keep internal and redacted external report versions. The external version replaces student names with aliases and blurs photos.
 
-### Install
+## v0.4.0 highlights
 
-Download `main.js`, `manifest.json`, and `styles.css` from the matching GitHub Release and place them in:
+- **Multi-framework support.** Each Markdown framework file is a behavior scale. Projects bind a primary framework and optional supplementary frameworks; actions inherit the project binding.
+- **Custom levels.** Levels come from the framework's Markdown table (for example L1–L5, A–D, or Chinese level names), not from hard-coded L1–L7.
+- **Student literacy profile.** Each student has `03_学员/<student>/素养档案.md` with current levels, challenges, and history. The portfolio can embed the current profile section.
+- **Review workflow.** The **Generate report** button becomes **Review report** after generation. A local mentor reviews only level changes and the overall assessment, not every evidence item.
+- **Approval gates.** PDF export, redacted external reports, and server push (future) stay unavailable until the report is approved. Teaching feedback is written to a separate file next to the report.
+- **Signed organization bundles.** Organization frameworks can be distributed as local signed JSON bundles with hash and Ed25519 verification. Automatic download waits until the server returns.
+
+## Install
+
+Download the matching GitHub Release assets:
+
+```text
+main.js
+manifest.json
+styles.css
+```
+
+Place them in:
 
 ```text
 <vault>/.obsidian/plugins/literacy-assessment/
 ```
 
-Then enable **Literacy Teacher Workbench** in Obsidian's community plugins settings.
+Restart Obsidian and enable **Literacy Teacher Workbench** in **Settings → Community plugins**.
 
-### License
-
-AGPL-3.0-only. See [LICENSE](LICENSE) and [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md).
-
-## 中文说明
-
-面向一线教育者的**本地素养评估工作台**：把一次项目 / 课堂 / 活动的素材收进本地文件夹，由 AI 整理（录音转写、照片说明），生成**行动成长报告**；按项目生成单同学项目报告与**项目总报告**；按学期/学年生成单同学阶段报告与**学期/学年总报告**。每份报告同时生成内部版和对外脱敏版。
-
-### Install
-
-Download `main.js`, `manifest.json`, and `styles.css` from the matching GitHub Release, place them in:
+BRAT users can add:
 
 ```text
-<vault>/.obsidian/plugins/literacy-assessment/
+PBL-EDU/literacy-assessment
 ```
 
-Then enable **Literacy Teacher Workbench** in Obsidian's community plugins settings. BRAT users can add `PBL-EDU/literacy-assessment`.
+## Quick start
 
-### Network and privacy
+1. Open the plugin from the ribbon or the command **Open literacy assessment panel**.
+2. Create a project, group, or student (optional).
+3. Create an action and put materials in its `素材/` folder; write mentor observations in `观察/`.
+4. Run **Scan** and then **AI organize**.
+5. Click **Generate report**. When generation finishes, the same button becomes **Review report**.
+6. Review level changes and the overall assessment, then approve.
+7. After approval, export PDF or open the redacted external report.
 
-The plugin has no server and no telemetry. It contacts only the AI provider and GetNote OpenAPI that the user explicitly configures, using the user's own API keys. Materials and reports stay in the local vault. A confirmation dialog is shown before any AI upload. No automatic updates.
+## Data and privacy
 
-### License
+- No server, no telemetry, and no automatic updates.
+- The plugin contacts only the AI provider and GetNote OpenAPI that the teacher explicitly configures.
+- API keys and materials stay in the local vault.
+- A confirmation dialog is shown before AI upload.
+- Teachers are responsible for guardian/institution consent and for complying with applicable privacy and child-protection laws.
 
-Released under the **GNU Affero General Public License v3.0 (AGPL-3.0-only)**. You may use, modify, and distribute it, including commercially, provided you comply with the AGPL. A separate commercial license is available for organizations that cannot accept the AGPL obligations. See [LICENSE](LICENSE) and [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md).
+## Documentation
 
-- 插件 id：`literacy-assessment`
-- 版本：`0.4.0`
-- 形态：Obsidian 桌面端插件；数据全部在本地库；优先调用 DeepSeek 官方 API，导师自带 Key；不需要安装 DeepSeek Harness
-- 不引入 ffmpeg / 本地模型 / 常驻服务
-- 授权：个人导师免费使用；机构部署/商用需书面授权（见 [LICENSE](LICENSE)）
-- 许可证：**AGPL-3.0**；可自由使用/修改/分发（含商业用途），但需遵守 AGPL 的源码与网络使用条款；不接受 AGPL 的机构可购买商业授权（见 [LICENSE](LICENSE) 与 [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md)）
-- 网络：只有导师主动调用 AI 或得到 OpenAPI 时才联网，使用导师自己配置的 Key；无遥测、无自动更新
-- 数据：素材与报告默认保存在本地库；仓库不包含任何真实学生数据或 API Key
+- [Chinese user guide](docs/使用指南.md)
+- [v0.4.0 operation manual (PDF)](docs/素养教师工作台-操作手册-v0.4.0.pdf)
+- [Architecture notes](docs/架构说明.md)
+- [Release notes v0.4.0](docs/release-notes-v0.4.0.md)
 
-![项目报告 R1 版式](docs/images/report-r1.png)
+## Development
 
-## 第一版范围
-
-1. 收集非结构化素材：学习单、作品、学生复盘（录音/文字）、导师评估（录音/文字）、导师复盘（录音/文字）、课堂照片/录音/视频。
-2. 按「项目 → 行动」归集到 `01_项目/<项目>/行动/日期_名称/`（旧库 `01_系列` 仍可读）。
-3. AI 整理：录音/视频转文字，PDF/Word/PowerPoint OCR，照片/学习单写观察说明，视频抽 3 个关键帧写画面说明。
-4. 对照本次教学目标，生成**行动成长报告**（证据 + 报告，标题和文件名含项目/行动）。
-5. 按项目生成单同学项目报告与项目总报告；按学期/学年生成单同学阶段报告与机构总报告。
-6. 每份报告同时生成内部版与对外版（化名、照片模糊）。
-
-## 已实现
-
-| 能力 | 入口 |
-| --- | --- |
-| 多素养框架（每个框架文件就是行为量表） | 00_框架/ + 设置页框架库 |
-| 项目绑定主框架 + 补充框架 | 新建项目时选择 |
-| 学生独立素养档案 + 作品集块同步 | 03_学员/<学生>/素养档案.md |
-| `生成报告 → 审核报告`、本地导师审核 | 行动卡第 ④ 步；侧栏「待我审核」 |
-| 教学反馈独立文件 | `<行动>/报告/教学反馈_<行动>.md` |
-| 新建项目（课程/活动群） | 侧栏「行动」组「新建项目」/ 命令面板 |
-| 新建小组（固定成员） | 侧栏「人」组「新建小组」/ 命令面板 |
-| 新建同学 | 侧栏「人」组「新建同学」/ 命令面板 |
-| 新建行动（项目/课程/课堂/活动/行动） | 侧栏「行动」组「新建行动」/ 命令面板 |
-| 项目下多次行动 | 新建行动时选「归属项目」 |
-| 长课堂录音默认得到录音卡/录音台录制并同步（暂存 → 匹配已有行动） | 侧栏「同步得到」/ 命令面板 |
-| 得到导入总目录（每条笔记存放/归口位置） | 侧栏「查看导入」/ `05_导入/得到/00_得到导入总目录.md` |
-| 扫描素材、生成素材清单 | 侧栏「扫描」/ 右键行动笔记 |
-| 录音/视频转写（DeepSeek 短音频或 OpenAI 兼容 ASR） | 侧栏「AI 整理」 |
-| PDF/Word/PowerPoint OCR（DeepSeek 官方） | 侧栏「AI 整理」 |
-| 照片/学习单图像说明（DeepSeek `deepseek-flash`） | 侧栏「AI 整理」 |
-| 视频关键帧说明（抽 3 帧，best effort） | 侧栏「AI 整理」 |
-| 学习目标证据抽取（JSON） | 侧栏「生成报告」 |
-| 行动成长报告（项目 · 行动） | 侧栏「生成报告」 |
-| 单同学项目报告 | 项目标题旁「项目报告」/ 命令面板 |
-| 项目总报告（项目内全部同学） | 项目标题旁「项目总览」 |
-| 单同学学期/学年报告 | 命令面板「生成阶段性成长报告」 |
-| 学期/学年总报告（全部项目/同学） | 侧栏「管理」组「学期总报告」/ 命令面板 |
-| 内部 / 对外两版 | 生成报告时自动生成 `_对外.md`，化名 + 模糊照片 |
-| 自动双链 | 行动 ↔ 项目 / 小组 / 同学 / 框架；正文首次提及自动内链，底部另有「关联」索引 |
-| 图像说明附原图 | `转写/图像说明.md` 每个说明块内嵌原图，便于核对 |
-| 报告证据照片 | 自动带出 `素材/` 照片，AI 可引用 |
-| 报告导出 PDF | 报告卡片「PDF」/ 命令面板 / 文件右键 |
-| 发送前隐私确认 | 默认开启 |
-| 报告证据来源（文件 + 时间戳）与免责声明 | 自动写入报告 |
-
-## 安装 / 构建
+Requirements: Node.js 20+, pnpm/npm, Obsidian 1.6.0+.
 
 ```bash
 npm install
-npm run build
+npm run dev        # watch build
+npm run verify     # typecheck + production build + tests + smoke test
 ```
 
-把 `main.js`、`manifest.json`、`styles.css` 放进：
+The plugin is desktop-only because it uses Node/Electron APIs for local media processing.
 
-```
-<你的库>/.obsidian/plugins/literacy-assessment/
-```
+## License
 
-或直接运行安装脚本：
+Released under the **GNU Affero General Public License v3.0 (AGPL-3.0-only)**. You may use, modify, and distribute it, including commercially, provided you comply with the AGPL. A separate commercial license is available for organizations that cannot accept the AGPL obligations. See [LICENSE](LICENSE) and [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md).
 
-```powershell
-.\install.ps1 -VaultPath "D:\我的Obsidian库"
-```
+## 中文简介
 
-在 Obsidian 设置 → 第三方插件里启用「素养评估」。
+**素养教师工作台**是一个本地优先的 Obsidian 插件，面向项目式学习中的素养评估。老师按「项目 → 行动」收集课堂素材，插件调用老师自己配置的 AI 服务完成转写、OCR、图像说明、证据抽取和报告草稿；素材和报告都保存在本地库。
 
-想先试一下：从 [GitHub Releases](https://github.com/PBL-EDU/literacy-assessment/releases/tag/0.4.0) 直接下载 `main.js`、`manifest.json`、`styles.css`，放入插件目录。不要把测试用的学生素材库提交到本仓库。操作手册见 [docs/素养教师工作台-操作手册-v0.4.0.pdf](docs/素养教师工作台-操作手册-v0.4.0.pdf)。
-
-BRAT 用户添加仓库 `PBL-EDU/literacy-assessment`，选择 `0.4.0` 即可。
-
-## 快速上手
-
-1. 设置 → 素养评估 → AI 服务：点「DeepSeek 官方（推荐）」，填 DeepSeek API Key；点「测试连接」。
-2. OCR 默认使用同一个 Key；短音频可用 DeepSeek 官方转写；**长课堂录音默认用得到录音卡/录音台录制，再点侧栏「同步得到」**，不要依赖插件内 ASR。
-3. 侧栏「素养评估」→ 新建项目（可选）→ 新建小组/同学（可选）→ 新建行动：归属项目默认「暂不归属」（之后可补），勾选小组/同学、勾选/新增教学目标。
-4. 把录音、视频、照片、PDF/Word 学习单放进行动 `素材/`；再点「扫描」→「AI 整理」。
-5. 点「生成报告」（单次行动，自动带证据照片）。
-6. 同一项目的多次行动，点项目标题旁「项目报告」；按学员/时间的阶段报告在命令面板；报告可导出 PDF。
-
-详细说明见 [使用指南](docs/使用指南.md) 和 [v0.4.0 操作手册](docs/素养教师工作台-操作手册-v0.4.0.pdf)。
-
-## 数据目录
-
-```
-白日梦行动/
-  00_框架/素养框架.md
-  01_项目/<项目>/              # 新目录；旧库 01_系列 兼容
-    <项目名>.md
-    行动/<日期_名称>/
-      <行动名>.md
-      素材/ 观察/ 转写/ 证据/ 报告/
-  02_小组/<小组>/
-    <小组名>.md
-  03_学员/<同学>/
-    <姓名>.md
-  04_模板/
-  05_导入/
-    得到/
-      00_得到导入总目录.md     # 每次导入/归口的汇总目录
-      <日期_标题>/              # 得到笔记暂存区；转写/总结匹配成功后拷贝，原录音保留
-  06_报告/                       # 学期/学年总报告
-    学期总报告_<周期>.md
-    学期总报告_<周期>_对外.md
-```
-
-- 卡片文件名就是实体名称（`社区小店调研项目.md`、`社区小店调研.md`、`小店探索组.md`、`张三.md`），全库唯一。
-- 重名时自动加后缀（如 `社区小店调研（社区小店调研项目）.md`），显示标题不变，双链仍指向正确文件。
-
-## 开发
-
-```bash
-npm run dev        # watch
-npm run build      # production bundle
-npm run typecheck
-npm test             # 25 项纯逻辑单测
-npm run test:asr     # 本地 mock 服务验证 multipart / 中文文件名 / 25 MB 拦截
-npm run test:getnote # 本地 mock 验证得到列表/详情/鉴权头
-npm run test:smoke   # 用 mock 的 obsidian 模块加载 main.js
-```
-
-## 状态
-
-- `typecheck`、`build`、25 项单测、bundle 冒烟测试已通过。
-- **尚未在 Obsidian 真机 + 真实 API Key 下跑通一次完整活动**；ASR/视觉/文本模型与得到 OpenAPI 的兼容性需要用小样本校准。
-- 已知限制：长课堂录音默认走得到录音卡/录音台的转写，再「同步得到」；插件内 DeepSeek ASR 只支持短 WAV/Ogg（≤8 MB、≤120 秒），OpenAI 兼容转写单文件上限 25 MB；视频会抽 3 个关键帧，编码不被 Electron 支持时只保留音轨转写；没有证据人工复核界面；没有内容 hash 缓存与成本预估；没有公开网站/机构报告。
-
-## 授权与商用
-
-- **个人导师**：免费下载、免费使用；数据保存在本地，模型 API Key 与费用由导师自行解决。
-- **机构/商业使用**：部署给 2 位及以上导师、作为机构评估系统、对外收费服务、白标/OEM、机构级聚合与合规支持，需要取得白日梦项目组的书面授权。
-- 插件不提供大模型 API，不代收模型费用，不收取/存储导师的原始素材与报告（除非主动提交或另行签约）。
-- 完整条款见 [LICENSE](LICENSE)；机构合作通过 PBL-EDU 项目渠道联系。
-
-## 文档
-
-- [架构说明](docs/架构说明.md)
-- [使用指南](docs/使用指南.md)
-- [0.2.7 UI 与报告设计](docs/UI与报告设计-0.2.7.md)
-- [变更记录](CHANGELOG.md)
-- [发布到 GitHub 与 Obsidian 市场](docs/发布到GitHub与Obsidian市场.md)
-- [得到大脑录音接入](docs/得到接入.md)
-- [国内 AI 服务商清单](docs/国内AI服务商清单.md)
-- [机构授权协议模板](docs/机构授权协议模板.md)
-- [数据委托处理协议（DPA）模板](docs/数据委托处理协议（DPA）模板.md)
-
-
-## 隐私
-
-插件没有服务器、没有遥测。只有导师主动运行 AI 时，素材才从本机直连所配置的 AI 服务；发送前默认弹窗确认。对外分享报告前，请单独取得监护人/机构同意并做脱敏。
-
-
-
+v0.4.0 支持多素养框架、行为量表、学生独立素养档案、`生成报告 → 审核报告`、本地导师审核、教学反馈独立文件，以及批准后才开放 PDF/对外版。中文详细用法见[使用指南](docs/使用指南.md)和[v0.4.0 操作手册](docs/素养教师工作台-操作手册-v0.4.0.pdf)。
