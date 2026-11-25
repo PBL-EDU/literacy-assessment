@@ -4,6 +4,8 @@
 import { App, Modal, Notice, Setting } from "obsidian";
 import type {
   ActivityType,
+  FrameworkDefinition,
+  FrameworkRef,
   NewActivityInput,
   NewGroupInput,
   NewSeriesInput,
@@ -16,6 +18,8 @@ export interface ActivityFormOptions {
   groups: Array<{ name: string; members: string[] }>;
   students: string[];
   goals: string[];
+  frameworks: FrameworkDefinition[];
+  defaultFrameworkRefs: FrameworkRef[];
 }
 
 export class NewActivityModal extends Modal {
@@ -45,6 +49,7 @@ export class NewActivityModal extends Modal {
       series: "暂不归属",
       sequence: "1",
       groups: [],
+      framework_refs: options.defaultFrameworkRefs,
     };
   }
 
@@ -281,13 +286,19 @@ export class NewSeriesModal extends Modal {
     mentor: "",
     description: "",
     goalsText: "",
+    framework_refs: [],
   };
+  private primaryFrameworkId = "";
+  private supplementary = new Set<string>();
 
   constructor(
     app: App,
+    private readonly frameworks: FrameworkDefinition[],
     private readonly onSubmit: (input: NewSeriesInput) => void,
   ) {
     super(app);
+    const firstValid = frameworks.find((framework) => !framework.errors.length);
+    this.primaryFrameworkId = firstValid?.id ?? frameworks[0]?.id ?? "";
   }
 
   onOpen(): void {
@@ -321,6 +332,40 @@ export class NewSeriesModal extends Modal {
       }),
     );
 
+    new Setting(contentEl).setName("素养框架").setHeading();
+    if (!this.frameworks.length) {
+      contentEl.createEl("p", {
+        cls: "setting-item-description",
+        text: "还没有找到素养框架。请先在 00_框架/ 放一份框架文件，或到设置页刷新框架库。",
+      });
+    } else {
+      new Setting(contentEl)
+        .setName("主框架")
+        .setDesc("报告主体、学生 level 默认展示使用这个框架")
+        .addDropdown((dropdown) => {
+          for (const framework of this.frameworks) {
+            const suffix = framework.errors.length ? "（量表有问题）" : "";
+            dropdown.addOption(framework.id, `${framework.name} v${framework.version}${suffix}`);
+          }
+          dropdown.setValue(this.primaryFrameworkId).onChange((value) => {
+            this.primaryFrameworkId = value;
+          });
+        });
+
+      for (const framework of this.frameworks) {
+        if (framework.id === this.primaryFrameworkId) continue;
+        new Setting(contentEl)
+          .setName(`补充框架：${framework.name}`)
+          .setDesc(framework.errors.length ? `量表有问题：${framework.errors.join("；")}` : `v${framework.version} · 只作为补充观察`)
+          .addToggle((toggle) =>
+            toggle.setValue(false).onChange((value) => {
+              if (value) this.supplementary.add(framework.id);
+              else this.supplementary.delete(framework.id);
+            }),
+          );
+      }
+    }
+
     new Setting(contentEl)
       .setName("简介")
       .addTextArea((area) => {
@@ -352,7 +397,12 @@ export class NewSeriesModal extends Modal {
               return;
             }
             this.close();
-            this.onSubmit({ ...this.input, title: this.input.title.trim() });
+            const refs: FrameworkRef[] = [];
+            if (this.primaryFrameworkId) refs.push({ id: this.primaryFrameworkId, role: "primary" });
+            for (const id of this.supplementary) {
+              if (id !== this.primaryFrameworkId) refs.push({ id, role: "supplementary" });
+            }
+            this.onSubmit({ ...this.input, title: this.input.title.trim(), framework_refs: refs });
           }),
       );
   }

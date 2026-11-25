@@ -6,6 +6,7 @@ import type { ActivityRecord, ArtifactKind } from "./types";
 import { SUBFOLDERS } from "./types";
 import { kindLabel } from "./core";
 import { findActivityReportPath, listArtifacts, pathExists } from "./vault";
+import { isApproved, readReview } from "./review";
 import type LiteracyAssessmentPlugin from "./main";
 
 export const LITERACY_VIEW_TYPE = "literacy-assessment-view";
@@ -104,6 +105,10 @@ export class LiteracyView extends ItemView {
     sync.onclick = () => void this.plugin.runGetnoteSync();
     const catalog = manageGroup.createEl("button", { cls: "la-btn", text: "查看导入" });
     catalog.onclick = () => void this.plugin.openGetnoteCatalog();
+    const reviewQueue = manageGroup.createEl("button", { cls: "la-btn", text: "待我审核" });
+    reviewQueue.onclick = () => void this.plugin.openPendingReviews();
+    const profiles = manageGroup.createEl("button", { cls: "la-btn", text: "素养档案" });
+    profiles.onclick = () => void this.plugin.syncStudentProfiles();
     const termReport = manageGroup.createEl("button", { cls: "la-btn", text: "学期总报告" });
     termReport.onclick = () => void this.plugin.runTermOverview();
 
@@ -166,12 +171,21 @@ export class LiteracyView extends ItemView {
     const manifestPath = `${activity.folder}/素材清单.md`;
     const pdfMarkerPath = `${activity.folder}/${SUBFOLDERS.reports}/.pdf-exported`;
     const externalReportPath = reportPath ? reportPath.replace(/\.md$/i, "_对外.md") : "";
-    const [hasReport, hasManifest, pdfExported, hasExternalReport] = await Promise.all([
+    const [hasReport, hasManifest, pdfExported, hasExternalReport, review] = await Promise.all([
       Promise.resolve(Boolean(reportPath)),
       pathExists(this.app, manifestPath),
       pathExists(this.app, pdfMarkerPath),
       externalReportPath ? pathExists(this.app, externalReportPath) : Promise.resolve(false),
+      reportPath ? readReview(this.app, reportPath) : Promise.resolve(null),
     ]);
+    const pendingReview = review?.status === "pending_review";
+    const changesRequested = review?.status === "changes_requested";
+    const approved = !review || isApproved(review);
+    const reviewLabel = pendingReview || changesRequested
+      ? "4 审核报告"
+      : !review
+        ? (hasReport ? "4 重新生成报告" : "4 生成报告")
+        : "4 审核记录";
 
     const countByKind = new Map<ArtifactKind, number>();
     for (const artifact of artifacts) {
@@ -193,6 +207,19 @@ export class LiteracyView extends ItemView {
       cls: hasReport ? "la-chip ok" : "la-chip warn",
       text: hasReport ? "报告 ✓" : "未生成报告",
     });
+    if (review) {
+      chips.createEl("span", {
+        cls: review.status === "approved" ? "la-chip ok" : review.status === "pending_review" ? "la-chip warn" : "la-chip",
+        text:
+          review.status === "approved"
+            ? "已批准"
+            : review.status === "pending_review"
+              ? "待审核"
+              : review.status === "changes_requested"
+                ? "需修改"
+                : "旧报告",
+      });
+    }
     if (pdfExported) chips.createEl("span", { cls: "la-chip ok", text: "PDF ✓" });
     if (hasExternalReport) {
       const externalChip = chips.createEl("span", { cls: "la-chip ok la-chip-link", text: "对外版 ✓" });
@@ -205,7 +232,7 @@ export class LiteracyView extends ItemView {
     const organized = ORGANIZED_STATUSES.has(activity.meta.status) || hasReport;
     const canOrganize = hasManifest && hasMedia;
     const canReport = hasManifest && (!hasMedia || organized);
-    const canArchive = hasReport && pdfExported;
+    const canArchive = hasReport && pdfExported && approved;
 
     const actions = card.createEl("div", { cls: "la-row-actions" });
     this.addStepButton(actions, "1 查看", true, "打开行动笔记", () => void this.plugin.openActivity(activity));
@@ -219,16 +246,23 @@ export class LiteracyView extends ItemView {
     );
     this.addStepButton(
       actions,
-      "4 生成报告",
-      canReport,
-      canReport ? "生成活动成长报告" : hasMedia ? "先完成第 3 步：AI 整理" : "先完成第 2 步：扫描",
-      () => void this.plugin.runReport(activity),
+      reviewLabel,
+      hasReport || canReport,
+      hasReport
+        ? "打开审核面板；未批准前 PDF 不可导出"
+        : hasMedia
+          ? "先完成第 3 步：AI 整理"
+          : "先完成第 2 步：扫描",
+      () => {
+        if (hasReport && review) void this.plugin.openReview(activity);
+        else void this.plugin.runReport(activity);
+      },
     );
     this.addStepButton(
       actions,
       "5 PDF",
-      hasReport,
-      hasReport ? "导出报告 PDF" : "先完成第 4 步：生成报告",
+      hasReport && approved,
+      !hasReport ? "先完成第 4 步：生成报告" : !approved ? "先通过本地导师审核" : "导出报告 PDF",
       () => {
         if (reportPath) void this.plugin.exportPdf(reportPath);
       },
@@ -237,7 +271,7 @@ export class LiteracyView extends ItemView {
       actions,
       "6 归档",
       canArchive,
-      canArchive ? "归档后从列表中隐藏" : "先完成第 4 步生成报告、第 5 步导出 PDF",
+      canArchive ? "归档后从列表中隐藏" : !approved ? "先通过本地导师审核" : "先导出 PDF",
       () => void this.plugin.archiveActivity(activity),
     );
   }

@@ -328,6 +328,7 @@ export async function createSeries(
     mentor: input.mentor.trim(),
     description: input.description.trim(),
     goals: parseGoals(input.goalsText),
+    framework_refs: input.framework_refs ?? [],
     created_at: nowISO(),
     status: "进行中",
   };
@@ -470,6 +471,12 @@ function renderSeriesNote(meta: SeriesMeta): string {
   lines.push("goals:");
   for (const goal of meta.goals) lines.push(`  - ${yamlValue(goal)}`);
   if (!meta.goals.length) lines.push("  []");
+  lines.push("framework_refs:");
+  for (const ref of meta.framework_refs ?? []) {
+    lines.push(`  - id: ${yamlValue(ref.id)}`);
+    lines.push(`    role: ${yamlValue(ref.role)}`);
+  }
+  if (!(meta.framework_refs ?? []).length) lines.push("  []");
   lines.push("---");
   lines.push("");
   lines.push(`# ${meta.title}`);
@@ -626,6 +633,12 @@ function renderActivityNote(meta: ActivityMeta): string {
   for (const goal of meta.goals) lines.push(`  - ${yamlValue(goal)}`);
   if (!meta.goals.length) lines.push("  []");
   lines.push(`framework: ${yamlValue(meta.framework)}`);
+  lines.push("framework_refs:");
+  for (const ref of meta.framework_refs ?? []) {
+    lines.push(`  - id: ${yamlValue(ref.id)}`);
+    lines.push(`    role: ${yamlValue(ref.role)}`);
+  }
+  if (!(meta.framework_refs ?? []).length) lines.push("  []");
   lines.push(`status: ${yamlValue(meta.status)}`);
   lines.push("---");
   lines.push("");
@@ -707,7 +720,13 @@ export async function createActivity(
     mentor: input.mentor.trim(),
     participants,
     goals,
-    framework: resolveFrameworkPath(settings),
+    framework: seriesRecord?.meta.framework_refs?.[0]?.id || resolveFrameworkPath(settings),
+    framework_refs:
+      seriesRecord?.meta.framework_refs?.length
+        ? seriesRecord.meta.framework_refs
+        : input.framework_refs?.length
+          ? input.framework_refs
+          : [],
     status: "收集中",
     series: seriesRecord?.meta.title ?? "",
     series_id: seriesRecord?.meta.series_id ?? "",
@@ -1030,48 +1049,35 @@ export async function syncAllRelations(app: App, settings: AssessmentSettings): 
   }
 }
 
-export const DEFAULT_FRAMEWORK = `# 白日梦行动 · 素养框架（简版）
+export const DEFAULT_FRAMEWORK = `---
+type: literacy-framework
+framework_id: dream-default
+name: 白日梦行动素养框架（示例）
+version: "0.4.0"
+status: active
+scale: 自定义
+---
 
-> 这是插件首次运行时生成的占位框架。请把《职业探索素养路标》的完整 U-K-S 目标粘贴到本文件，或保留简版先跑通流程。
-> 评估报告会读取本文件作为「素养发展目标」的参照。
+# 白日梦行动 · 素养框架（示例）
 
-## 使用约定
+> 这是一份带行为量表的占位框架。请按学校/机构的量表替换表格内容。
 
-1. 每条目标最好带编号（如 \`CCD.3-L3\`），方便报告引用。
-2. 水平 L1-L7：幼儿 0-5 / 儿童 5-8 / 青少年 8-12 / 青少年 12-16 / 青少年 16-23 / 青年 24-32 / 成人。
-3. 没有证据时写「未观察到」，不要写「不具备」。
+## 素养目标与行为量表
 
-## 一级维度与二级维度
+| 目标ID | 目标 | 维度 | L1 | L2 | L3 | L4 | L5 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| CCD.3 | 与他人协作 | 职业认知 | 能参与小组 | 能承担分工 | 能主动协调 | 能处理冲突 | 能带动他人 |
+| SDU.1 | 感知与多角色 | 自我认知 | 能说出感受 | 能识别角色 | 能理解角色差异 | 能调整角色 | 能整合多角色 |
+| LLM.4 | 付诸行动 | 终身学习 | 能尝试 | 能完成一步 | 能持续行动 | 能迭代改进 | 能带动行动 |
 
-### 1. CCD 职业认知与发展
+## 评估说明
 
-- **CCD.1 职业使命**：职业不仅包含具体工作，也包含对自我和他人价值的实现。
-- **CCD.2 使命带来成就感**：使命和价值，与职业中的体验、感受和成就感密切相关。
-- **CCD.3 与他人协作**：协作能形成更大群体、解决更大问题，也带来冲突与责任。
-- **CCD.4 工具和能力**：工具拓展我们的能力，帮助我们实现使命和价值。
-- **CCD.5 职业创造**：社会与职业影响收入、发展和内心丰盈，我们也能通过创造推动它变化。
-
-### 2. SDU 自我发现与自我认知
-
-- **SDU.1 感知与多角色**：感知自己的感受、经历和观点，理解自己承担的不同社会角色。
-- **SDU.2 综合与自我灵活性**：综合多方信息，批判性地调整自我认知，在不同情境中保持灵活。
-- **SDU.3 接纳与积极弹性**：接纳自我，保持积极和灵活的自我概念。
-- **SDU.4 社会互动与自我**：社会互动和自我实现，丰富我们对自我的认知。
-
-### 3. LLM 终身学习与元认知
-
-- **LLM.1 了解趋势**：了解社会与领域的历史、规律和趋势，设定合理的发展目标。
-- **LLM.2 设定发展目标**：基于自我认知和趋势，确定多个层次的目标。
-- **LLM.3 营造学习环境**：调整与他人的关系和自身定位，营造良好的学习发展环境。
-- **LLM.4 付诸行动**：在行动、反思和迭代中发展多个层次的能力。
-- **LLM.5 发展自我**：在真实世界的创造中学习，既发展能力，也丰富内在自我。
-
-## 评估重点
-
-- 看具体行为、情境和变化，不贴标签。
-- 一次活动只评估本次活动目标覆盖的维度；阶段报告再看跨活动趋势。
-- 每条结论都要能回到素材原文或画面。
+- 看具体行为、情境和变化，不贴标签；
+- 没有证据写「未观察到」，不写「不具备」；
+- level 只表示当前材料中的表现，不是对孩子的总体评价；
+- 一次活动只评估本次活动目标覆盖的维度。
 `;
+
 
 export const ACTIVITY_REPORT_TEMPLATE = `# 活动成长报告模板
 

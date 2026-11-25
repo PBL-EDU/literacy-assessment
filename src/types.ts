@@ -7,6 +7,106 @@ export type SeriesType = "项目" | "课程" | "活动群" | "其他";
 
 export type ArtifactKind = "audio" | "video" | "image" | "text" | "document" | "other";
 
+export type FrameworkRole = "primary" | "supplementary";
+
+export interface FrameworkRef {
+  id: string;
+  role: FrameworkRole;
+}
+
+export interface FrameworkLevel {
+  key: string;
+  label: string;
+}
+
+export interface FrameworkGoal {
+  id: string;
+  title: string;
+  dimension: string;
+  levels: Record<string, string>;
+}
+
+export interface FrameworkDefinition {
+  id: string;
+  name: string;
+  version: string;
+  status: string;
+  path: string;
+  hash: string;
+  levels: FrameworkLevel[];
+  goals: FrameworkGoal[];
+  errors: string[];
+  mandatory: boolean;
+  orgId: string;
+}
+
+export interface QualitySummary {
+  source_count: number;
+  goal_count: number;
+  low_confidence_count: number;
+  unverified_source_count: number;
+  contradiction_count: number;
+  gaps: string[];
+  scale_checks: Array<{
+    goal: string;
+    requirement: string;
+    met: "true" | "false" | "unknown";
+    reason: string;
+  }>;
+}
+
+export interface LevelProposal {
+  student: string;
+  framework_id: string;
+  framework_name: string;
+  goal: string;
+  goal_title: string;
+  current_level: string;
+  proposed_level: string;
+  confidence: number;
+  scale_requirement: string;
+  met: "true" | "false" | "unknown";
+  evidence_refs: string[];
+  reason: string;
+  context_note: string;
+}
+
+export interface TeachingFeedback {
+  leading: string[];
+  evidence_collection: string[];
+  next_observation: string[];
+}
+
+export type ReviewStatus = "draft" | "pending_review" | "approved" | "changes_requested" | "legacy";
+
+export interface LevelDecision {
+  student: string;
+  framework_id: string;
+  goal: string;
+  current_level: string;
+  proposed_level: string;
+  final_level: string;
+  decision: "approved" | "kept" | "modified" | "deferred";
+  note: string;
+  decided_at: string;
+}
+
+export interface ReviewRecord {
+  report_id: string;
+  report_path: string;
+  report_kind: "activity" | "stage" | "series" | "overview";
+  status: ReviewStatus;
+  reviewer: string;
+  reviewed_at: string;
+  level_decisions: LevelDecision[];
+  overall_decision: "approved" | "changes_requested" | "pending";
+  notes: string;
+  quality_summary?: QualitySummary;
+  teaching_feedback?: TeachingFeedback;
+  level_proposals?: LevelProposal[];
+  participants?: string[];
+}
+
 export interface AssessmentSettings {
   dataRoot: string;
   frameworkPath: string;
@@ -128,6 +228,7 @@ export interface ActivityMeta {
   participants: string[];
   goals: string[];
   framework: string;
+  framework_refs?: FrameworkRef[];
   status: string;
   /** 所属系列/项目/课程名称 */
   series: string;
@@ -146,6 +247,7 @@ export interface SeriesMeta {
   mentor: string;
   description: string;
   goals: string[];
+  framework_refs?: FrameworkRef[];
   created_at: string;
   status: string;
 }
@@ -163,6 +265,7 @@ export interface NewSeriesInput {
   mentor: string;
   description: string;
   goalsText: string;
+  framework_refs?: FrameworkRef[];
 }
 
 export interface GroupMeta {
@@ -210,6 +313,7 @@ export interface NewActivityInput {
   series: string;
   sequence: string;
   groups: string[];
+  framework_refs?: FrameworkRef[];
 }
 
 export interface ArtifactInfo {
@@ -285,6 +389,12 @@ export interface ActivityAssessment {
   missing_evidence: string[];
   /** 报告附带的证据照片（相对 vault） */
   evidence_photos?: string[];
+  quality_summary?: QualitySummary;
+  level_proposals?: LevelProposal[];
+  teaching_feedback?: TeachingFeedback;
+  framework_refs?: FrameworkRef[];
+  framework_versions?: string[];
+  framework_hashes?: string[];
   disclaimer: string;
 }
 
@@ -308,6 +418,12 @@ export interface StageAssessment {
   strengths: string[];
   suggestions: string[];
   missing_evidence: string[];
+  quality_summary?: QualitySummary;
+  level_proposals?: LevelProposal[];
+  teaching_feedback?: TeachingFeedback;
+  framework_refs?: FrameworkRef[];
+  framework_versions?: string[];
+  framework_hashes?: string[];
   disclaimer: string;
 }
 
@@ -334,6 +450,12 @@ export interface OverviewAssessment {
   suggestions: string[];
   missing_evidence: string[];
   evidence_photos?: string[];
+  quality_summary?: QualitySummary;
+  level_proposals?: LevelProposal[];
+  teaching_feedback?: TeachingFeedback;
+  framework_refs?: FrameworkRef[];
+  framework_versions?: string[];
+  framework_hashes?: string[];
   disclaimer: string;
 }
 

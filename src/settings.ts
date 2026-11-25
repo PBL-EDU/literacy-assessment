@@ -5,6 +5,7 @@ import { App, Notice, PluginSettingTab, Setting } from "obsidian";
 import type LiteracyAssessmentPlugin from "./main";
 import { DEFAULT_SETTINGS } from "./types";
 import { resolveFrameworkPath } from "./core";
+import { listFrameworks } from "./framework";
 
 export class LiteracySettingTab extends PluginSettingTab {
   plugin: LiteracyAssessmentPlugin;
@@ -63,6 +64,39 @@ export class LiteracySettingTab extends PluginSettingTab {
       )
       .addButton((button) =>
         button.setButtonText("打开框架文件").onClick(() => void this.plugin.openFramework()),
+      );
+
+    /* ---------------- 框架库 ---------------- */
+    new Setting(containerEl).setName("素养框架库").setHeading();
+    containerEl.createEl("p", {
+      cls: "setting-item-description",
+      text: "每个 .md 文件就是一份行为量表；项目可选择主框架和补充框架。组织框架使用签名 bundle，个人框架直接放在 00_框架/。",
+    });
+    const frameworkBox = containerEl.createDiv({ cls: "la-framework-list" });
+    void this.renderFrameworkList(frameworkBox);
+    let bundlePath = "";
+    new Setting(containerEl)
+      .setName("导入组织框架 bundle")
+      .setDesc("把组织提供的 .json bundle 放进库内，填相对路径；会校验 hash 和 Ed25519 签名。个人用户不需要。")
+      .addText((text) =>
+        text.setPlaceholder("00_框架/_组织/xxx/bundle.json").onChange((value) => {
+          bundlePath = value.trim();
+        }),
+      )
+      .addButton((button) =>
+        button.setButtonText("校验并导入").onClick(async () => {
+          if (!bundlePath) {
+            new Notice("先填 bundle 路径。");
+            return;
+          }
+          try {
+            const path = await this.plugin.importFrameworkBundle(bundlePath);
+            new Notice(`组织框架已导入：${path}`);
+            this.display();
+          } catch (error) {
+            new Notice(error instanceof Error ? error.message : String(error), 9000);
+          }
+        }),
       );
 
     /* ---------------- AI 服务 ---------------- */
@@ -542,7 +576,7 @@ export class LiteracySettingTab extends PluginSettingTab {
     new Setting(containerEl).setName("关于").setHeading();
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "素养评估 v0.3.1 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
+      text: "素养评估 v0.4.0 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
     });
     containerEl.createEl("p", {
       cls: "setting-item-description",
@@ -550,8 +584,35 @@ export class LiteracySettingTab extends PluginSettingTab {
     });
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: `当前框架文件：${resolveFrameworkPath(settings)}`,
+      text: `当前默认框架文件（兼容）：${resolveFrameworkPath(settings)}`,
     });
+  }
+
+  private async renderFrameworkList(container: HTMLElement): Promise<void> {
+    container.empty();
+    const frameworks = await listFrameworks(this.app, this.plugin.settings);
+    if (!frameworks.length) {
+      container.createEl("p", {
+        cls: "setting-item-description",
+        text: "还没有解析到框架。把一份带「目标 × level 表格」的 .md 放到 00_框架/。",
+      });
+    }
+    for (const framework of frameworks) {
+      const row = container.createDiv({ cls: "la-framework-row" });
+      row.createEl("strong", { text: `${framework.name}  v${framework.version}` });
+      row.createEl("div", {
+        cls: "setting-item-description",
+        text: `${framework.id} · ${framework.levels.length} 个 level · ${framework.goals.length} 个目标`,
+      });
+      if (framework.errors.length) {
+        row.createEl("div", {
+          cls: "setting-item-description",
+          text: `⚠ ${framework.errors.join("；")}`,
+        });
+      }
+    }
+    const refresh = container.createEl("button", { cls: "la-btn", text: "刷新框架库" });
+    refresh.onclick = () => void this.renderFrameworkList(container);
   }
 }
 

@@ -455,3 +455,10 @@
     page-break-inside: avoid;
   }
 }
+
+/* v0.4.0 framework / review */
+.la-framework-list { display: grid; gap: 8px; margin: 8px 0 16px; }
+.la-framework-row { padding: 8px 10px; border: 1px solid var(--background-modifier-border); border-radius: 6px; }
+.la-review-card { padding: 10px; margin: 8px 0; border: 1px solid var(--background-modifier-border); border-radius: 6px; }
+.la-review-row { padding: 8px 0; border-bottom: 1px solid var(--background-modifier-border); }
+.la-final-level { margin-top: 4px; }

@@ -3,6 +3,45 @@
  */
 import type { ActivityMeta, ChatMessage } from "./types";
 
+const QUALITY_BLOCK = `
+补充输出（必须包含，且 level 只能使用【素养框架】量表中的值）：
+{
+  "quality_summary": {
+    "source_count": 0,
+    "goal_count": 0,
+    "low_confidence_count": 0,
+    "unverified_source_count": 0,
+    "contradiction_count": 0,
+    "gaps": ["证据缺口"],
+    "scale_checks": [
+      {"goal": "目标", "requirement": "量表原文/摘要", "met": "true|false|unknown", "reason": "依据"}
+    ]
+  },
+  "level_proposals": [
+    {
+      "student": "学员",
+      "framework_id": "所属框架 id；不确定留空",
+      "goal": "目标",
+      "goal_title": "目标名称",
+      "current_level": "当前 level 或 未判断",
+      "proposed_level": "建议 level 或 未判断",
+      "confidence": 0.0,
+      "scale_requirement": "量表原文/摘要",
+      "met": "true|false|unknown",
+      "evidence_refs": ["引文或来源"],
+      "reason": "为什么建议这个 level",
+      "context_note": "情境差异/限制"
+    }
+  ],
+  "teaching_feedback": {
+    "leading": ["课堂/行动带领建议"],
+    "evidence_collection": ["证据与信息收集建议"],
+    "next_observation": ["下一次观察重点"]
+  }
+}
+没有足够证据时不要提出升级；低置信度证据不能单独支撑 level 调整。
+`;
+
 export interface ActivityPromptInput {
   meta: ActivityMeta;
   framework: string;
@@ -37,7 +76,7 @@ const ACTIVITY_SYSTEM = `你是「白日梦行动」的素养评估助手。你�
         {
           "goal": "对应的教学目标",
           "dimension": "对应的素养维度；不确定写未指定维度",
-          "level": "L1-L7 或 未判断",
+          "level": "量表 level 或 未判断",
           "quote": "原文引文或画面描述",
           "source": "文件名 @ 00:12:30",
           "confidence": 0.0,
@@ -86,7 +125,7 @@ ${context || "（没有可用素材）"}
 请严格按系统提示的 JSON 结构输出。`;
 
   return [
-    { role: "system", content: ACTIVITY_SYSTEM },
+    { role: "system", content: ACTIVITY_SYSTEM + QUALITY_BLOCK },
     { role: "user", content: user },
   ];
 }
@@ -113,10 +152,10 @@ const STAGE_SYSTEM = `你是「白日梦行动」的阶段性素养评估助手�
 {
   "overview": "阶段整体情况，250 字以内",
   "goal_progress": [
-    {"goal": "素养目标/维度", "level": "L1-L7 或 未判断", "evidence_summary": "跨活动证据摘要", "trend": "进步|稳定|波动|证据不足"}
+    {"goal": "素养目标/维度", "level": "量表 level 或 未判断", "evidence_summary": "跨活动证据摘要", "trend": "进步|稳定|波动|证据不足"}
   ],
   "evidence": [
-    {"student": "学员", "goal": "目标", "dimension": "维度", "level": "L1-L7 或 未判断", "quote": "引文", "source": "活动名/文件名 @ 时间", "confidence": 0.0, "origin": "原文|推断", "note": "可选"}
+    {"student": "学员", "goal": "目标", "dimension": "维度", "level": "量表 level 或 未判断", "quote": "引文", "source": "活动名/文件名 @ 时间", "confidence": 0.0, "origin": "原文|推断", "note": "可选"}
   ],
   "strengths": ["具体优势"],
   "suggestions": ["下一步建议"],
@@ -137,7 +176,7 @@ ${input.context || "（没有可用证据）"}
 请严格按系统提示的 JSON 结构输出。`;
 
   return [
-    { role: "system", content: STAGE_SYSTEM },
+    { role: "system", content: STAGE_SYSTEM + QUALITY_BLOCK },
     { role: "user", content: user },
   ];
 }
@@ -156,10 +195,10 @@ const SERIES_SYSTEM = `你是「白日梦行动」的项目成长报告助手。
 {
   "overview": "项目整体情况，250 字以内",
   "goal_progress": [
-    {"goal": "素养目标/维度", "level": "L1-L7 或 未判断", "evidence_summary": "项目内证据摘要", "trend": "进步|稳定|波动|证据不足"}
+    {"goal": "素养目标/维度", "level": "量表 level 或 未判断", "evidence_summary": "项目内证据摘要", "trend": "进步|稳定|波动|证据不足"}
   ],
   "evidence": [
-    {"student": "学员", "goal": "目标", "dimension": "维度", "level": "L1-L7 或 未判断", "quote": "引文", "source": "行动名/文件名 @ 时间", "confidence": 0.0, "origin": "原文|推断", "note": "可选"}
+    {"student": "学员", "goal": "目标", "dimension": "维度", "level": "量表 level 或 未判断", "quote": "引文", "source": "行动名/文件名 @ 时间", "confidence": 0.0, "origin": "原文|推断", "note": "可选"}
   ],
   "strengths": ["具体优势"],
   "suggestions": ["下一步建议"],
@@ -188,7 +227,7 @@ ${input.context || "（没有可用证据）"}
 请严格按系统提示的 JSON 结构输出。`;
 
   return [
-    { role: "system", content: SERIES_SYSTEM },
+    { role: "system", content: SERIES_SYSTEM + QUALITY_BLOCK },
     { role: "user", content: user },
   ];
 }
@@ -217,11 +256,11 @@ const OVERVIEW_SYSTEM = `你是「白日梦行动」的项目/学期总报告助
   "overview": "整体情况，300 字以内",
   "highlights": ["3-5 条关键发现，每条一句话"],
   "goal_progress": [
-    {"goal": "素养目标/维度", "level": "L1-L7 或 未判断", "evidence_summary": "跨行动证据摘要", "trend": "进步|稳定|波动|证据不足"}
+    {"goal": "素养目标/维度", "level": "量表 level 或 未判断", "evidence_summary": "跨行动证据摘要", "trend": "进步|稳定|波动|证据不足"}
   ],
   "students": [
     {"student": "同学姓名", "summary": "该同学在本周期最值得说的一段变化，120 字以内", "highlights": ["1-2 条具体表现"], "evidence": [
-      {"student": "同学姓名", "goal": "目标", "dimension": "维度", "level": "L1-L7 或 未判断", "quote": "引文或画面描述", "source": "行动名/文件 @ 时间", "confidence": 0.0, "origin": "原文|推断"}
+      {"student": "同学姓名", "goal": "目标", "dimension": "维度", "level": "量表 level 或 未判断", "quote": "引文或画面描述", "source": "行动名/文件 @ 时间", "confidence": 0.0, "origin": "原文|推断"}
     ]}
   ],
   "suggestions": ["给项目/机构的下一年建议，1-3 条"],
@@ -245,7 +284,7 @@ ${input.context || "（没有可用证据）"}
 
 请严格按系统提示的 JSON 结构输出。`;
   return [
-    { role: "system", content: OVERVIEW_SYSTEM },
+    { role: "system", content: OVERVIEW_SYSTEM + QUALITY_BLOCK },
     { role: "user", content: user },
   ];
 }

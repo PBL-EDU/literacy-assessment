@@ -10,13 +10,17 @@ import type {
   AssessmentSettings,
   ContextBlock,
   EvidenceItem,
+  FrameworkRef,
   GoalAnalysis,
   GoalProgress,
   GroupMeta,
+  LevelProposal,
   OverviewAssessment,
+  QualitySummary,
   SeriesMeta,
   StageAssessment,
   StudentAssessment,
+  TeachingFeedback,
 } from "./types";
 import { ACTIVITY_NOTE, ACTIONS_SUBFOLDER, FOLDERS, SUBFOLDERS } from "./types";
 
@@ -366,10 +370,76 @@ export function activityReportFileName(meta: ActivityMeta): string {
 }
 
 export function normalizeLevel(value: unknown): string {
-  const raw = asString(value, "未判断").toUpperCase().replace(/\s+/g, "");
-  if (/^L[1-7]$/.test(raw)) return raw;
-  const match = /L([1-7])/.exec(raw);
-  return match ? `L${match[1]}` : "未判断";
+  const raw = asString(value, "未判断").replace(/\s+/g, "");
+  if (!raw || /^(未判断|未知|不确定|NA|N\/A)$/i.test(raw)) return "未判断";
+  // 不再硬编码 L1-L7；只接受短 level token，具体合法性由框架量表校验。
+  if (raw.length <= 12 && !/[\s\-/\\,，、]/.test(raw)) return raw.toUpperCase();
+  return "未判断";
+}
+
+function normalizeQualitySummary(value: unknown): QualitySummary | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const r = value as Record<string, unknown>;
+  const checksRaw = Array.isArray(r.scale_checks) ? r.scale_checks : [];
+  const scaleChecks = checksRaw.map((item) => {
+    const c = asRecord(item);
+    const metRaw = asString(c.met, "unknown").toLowerCase();
+    return {
+      goal: asString(c.goal),
+      requirement: asString(c.requirement),
+      met: metRaw === "true" || metRaw === "yes" ? ("true" as const) : metRaw === "false" || metRaw === "no" ? ("false" as const) : ("unknown" as const),
+      reason: asString(c.reason),
+    };
+  });
+  return {
+    source_count: Math.max(0, asNumber(r.source_count, 0)),
+    goal_count: Math.max(0, asNumber(r.goal_count, 0)),
+    low_confidence_count: Math.max(0, asNumber(r.low_confidence_count, 0)),
+    unverified_source_count: Math.max(0, asNumber(r.unverified_source_count, 0)),
+    contradiction_count: Math.max(0, asNumber(r.contradiction_count, 0)),
+    gaps: asStringArray(r.gaps),
+    scale_checks: scaleChecks,
+  };
+}
+
+function normalizeLevelProposals(value: unknown): LevelProposal[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const out: LevelProposal[] = [];
+  for (const item of value) {
+    const r = asRecord(item);
+    const student = asString(r.student);
+    const goal = asString(r.goal);
+    if (!student || !goal) continue;
+    const metRaw = asString(r.met, "unknown").toLowerCase();
+    out.push({
+      student,
+      framework_id: asString(r.framework_id),
+      framework_name: asString(r.framework_name),
+      goal,
+      goal_title: asString(r.goal_title, goal),
+      current_level: normalizeLevel(r.current_level),
+      proposed_level: normalizeLevel(r.proposed_level),
+      confidence: clamp(asNumber(r.confidence, 0), 0, 1),
+      scale_requirement: asString(r.scale_requirement),
+      met: metRaw === "true" || metRaw === "yes" ? "true" : metRaw === "false" || metRaw === "no" ? "false" : "unknown",
+      evidence_refs: asStringArray(r.evidence_refs),
+      reason: asString(r.reason),
+      context_note: asString(r.context_note ?? r.contextNote),
+    });
+  }
+  return out;
+}
+
+function normalizeTeachingFeedback(value: unknown): TeachingFeedback | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const r = value as Record<string, unknown>;
+  const feedback = {
+    leading: asStringArray(r.leading),
+    evidence_collection: asStringArray(r.evidence_collection ?? r.evidenceCollection),
+    next_observation: asStringArray(r.next_observation ?? r.nextObservation),
+  };
+  if (!feedback.leading.length && !feedback.evidence_collection.length && !feedback.next_observation.length) return undefined;
+  return feedback;
 }
 
 export function normalizeOrigin(value: unknown): "原文" | "推断" {
@@ -403,6 +473,24 @@ export function normalizeActivityType(value: string): ActivityType {
   return allowed.includes(value as ActivityType) ? (value as ActivityType) : "行动";
 }
 
+export function normalizeFrameworkRefs(value: unknown): FrameworkRef[] {
+  if (!Array.isArray(value)) return [];
+  const refs: FrameworkRef[] = [];
+  for (const item of value) {
+    if (typeof item === "string" && item.trim()) {
+      refs.push({ id: item.trim(), role: refs.length ? "supplementary" : "primary" });
+      continue;
+    }
+    if (item && typeof item === "object") {
+      const record = item as Record<string, unknown>;
+      const id = asString(record.id ?? record.framework_id);
+      if (!id) continue;
+      refs.push({ id, role: record.role === "supplementary" ? "supplementary" : "primary" });
+    }
+  }
+  return refs;
+}
+
 export function normalizeActivityMeta(raw: Record<string, unknown>, folder: string): ActivityMeta {
   const title = asString(raw.title) || folder.split(/[\\/]/).pop()?.replace(/^\d{4}-\d{2}-\d{2}_/, "") || "未命名行动";
   const type = normalizeActivityType(asString(raw.type, "行动"));
@@ -420,6 +508,7 @@ export function normalizeActivityMeta(raw: Record<string, unknown>, folder: stri
     participants: asStringArray(raw.participants),
     goals: asStringArray(raw.goals),
     framework: asString(raw.framework),
+    framework_refs: normalizeFrameworkRefs(raw.framework_refs),
     status: asString(raw.status, "收集中"),
     series,
     series_id: asString(raw.series_id) || seriesIdFor(series),
@@ -440,6 +529,7 @@ export function normalizeSeriesMeta(raw: Record<string, unknown>, folder: string
     mentor: asString(raw.mentor),
     description: asString(raw.description),
     goals: asStringArray(raw.goals),
+    framework_refs: normalizeFrameworkRefs(raw.framework_refs),
     created_at: asString(raw.created_at, nowISO()),
     status: asString(raw.status, "进行中"),
   };
@@ -718,6 +808,9 @@ export function normalizeActivityAssessment(raw: unknown, meta: ActivityMeta, mo
     mentor_suggestions: asStringArray(r.mentor_suggestions ?? r.mentorSuggestions),
     missing_evidence: asStringArray(r.missing_evidence ?? r.missingEvidence),
     evidence_photos: asStringArray(r.evidence_photos ?? r.evidencePhotos),
+    quality_summary: normalizeQualitySummary(r.quality_summary ?? r.qualitySummary),
+    level_proposals: normalizeLevelProposals(r.level_proposals ?? r.levelProposals),
+    teaching_feedback: normalizeTeachingFeedback(r.teaching_feedback ?? r.teachingFeedback),
     disclaimer: DISCLAIMER,
   };
 }
@@ -746,6 +839,9 @@ export function normalizeStageAssessment(raw: unknown, student: string, period: 
     strengths: asStringArray(r.strengths),
     suggestions: asStringArray(r.suggestions),
     missing_evidence: asStringArray(r.missing_evidence ?? r.missingEvidence),
+    quality_summary: normalizeQualitySummary(r.quality_summary ?? r.qualitySummary),
+    level_proposals: normalizeLevelProposals(r.level_proposals ?? r.levelProposals),
+    teaching_feedback: normalizeTeachingFeedback(r.teaching_feedback ?? r.teachingFeedback),
     disclaimer: DISCLAIMER,
   };
 }
@@ -810,6 +906,9 @@ export function normalizeOverviewAssessment(
     suggestions: asStringArray(r.suggestions),
     missing_evidence: asStringArray(r.missing_evidence ?? r.missingEvidence),
     evidence_photos: asStringArray(r.evidence_photos ?? r.evidencePhotos),
+    quality_summary: normalizeQualitySummary(r.quality_summary ?? r.qualitySummary),
+    level_proposals: normalizeLevelProposals(r.level_proposals ?? r.levelProposals),
+    teaching_feedback: normalizeTeachingFeedback(r.teaching_feedback ?? r.teachingFeedback),
     disclaimer: DISCLAIMER,
   };
 }

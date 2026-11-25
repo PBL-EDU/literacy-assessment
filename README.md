@@ -27,7 +27,7 @@ The plugin has no server and no telemetry. It contacts only the AI provider and 
 Released under the **GNU Affero General Public License v3.0 (AGPL-3.0-only)**. You may use, modify, and distribute it, including commercially, provided you comply with the AGPL. A separate commercial license is available for organizations that cannot accept the AGPL obligations. See [LICENSE](LICENSE) and [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md).
 
 - 插件 id：`literacy-assessment`
-- 版本：`0.3.1`
+- 版本：`0.4.0`
 - 形态：Obsidian 桌面端插件；数据全部在本地库；优先调用 DeepSeek 官方 API，导师自带 Key；不需要安装 DeepSeek Harness
 - 不引入 ffmpeg / 本地模型 / 常驻服务
 - 授权：个人导师免费使用；机构部署/商用需书面授权（见 [LICENSE](LICENSE)）
@@ -50,6 +50,11 @@ Released under the **GNU Affero General Public License v3.0 (AGPL-3.0-only)**. Y
 
 | 能力 | 入口 |
 | --- | --- |
+| 多素养框架（每个框架文件就是行为量表） | 00_框架/ + 设置页框架库 |
+| 项目绑定主框架 + 补充框架 | 新建项目时选择 |
+| 学生独立素养档案 + 作品集块同步 | 03_学员/<学生>/素养档案.md |
+| `生成报告 → 审核报告`、本地导师审核 | 行动卡第 ④ 步；侧栏「待我审核」 |
+| 教学反馈独立文件 | `<行动>/报告/教学反馈_<行动>.md` |
 | 新建项目（课程/活动群） | 侧栏「行动」组「新建项目」/ 命令面板 |
 | 新建小组（固定成员） | 侧栏「人」组「新建小组」/ 命令面板 |
 | 新建同学 | 侧栏「人」组「新建同学」/ 命令面板 |
@@ -97,9 +102,9 @@ npm run build
 
 在 Obsidian 设置 → 第三方插件里启用「素养评估」。
 
-想先试一下：从 [GitHub Releases](https://github.com/PBL-EDU/literacy-assessment/releases/tag/0.3.1) 下载 `main.js`、`manifest.json`、`styles.css`，放入插件目录；或使用 zip 安装包。不要把测试用的学生素材库提交到本仓库。
+想先试一下：从 [GitHub Releases](https://github.com/PBL-EDU/literacy-assessment/releases/tag/0.4.0) 下载 `main.js`、`manifest.json`、`styles.css`，放入插件目录；或使用 zip 安装包。不要把测试用的学生素材库提交到本仓库。
 
-BRAT 用户添加仓库 `PBL-EDU/literacy-assessment`，选择 `0.3.1` 即可。
+BRAT 用户添加仓库 `PBL-EDU/literacy-assessment`，选择 `0.4.0` 即可。
 
 ## 快速上手
 
@@ -110,7 +115,7 @@ BRAT 用户添加仓库 `PBL-EDU/literacy-assessment`，选择 `0.3.1` 即可。
 5. 点「生成报告」（单次行动，自动带证据照片）。
 6. 同一项目的多次行动，点项目标题旁「项目报告」；按学员/时间的阶段报告在命令面板；报告可导出 PDF。
 
-详细说明见 [使用指南](docs/使用指南.md) 和 [v0.3.1 操作手册](docs/素养教师工作台-操作手册-v0.3.1.pdf)。
+详细说明见 [使用指南](docs/使用指南.md) 和 [v0.4.0 操作手册](docs/素养教师工作台-操作手册-v0.4.0.pdf)。
 
 ## 数据目录
 

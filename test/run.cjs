@@ -489,6 +489,55 @@ test("buildStageMessages 包含阶段与活动", () => {
   ok(all.includes("活动A"), "缺活动");
 });
 
+/* ---------------- v0.4.0 评估审核 ---------------- */
+
+test("normalizeLevel 支持自定义 level，不再硬编码 L1-L7", () => {
+  expect(core.normalizeLevel("A"), "A");
+  expect(core.normalizeLevel("L5"), "L5");
+  expect(core.normalizeLevel("3"), "3");
+  expect(core.normalizeLevel("初阶"), "初阶");
+  expect(core.normalizeLevel("未判断"), "未判断");
+  expect(core.normalizeLevel("L1-L7"), "未判断");
+});
+
+test("normalizeFrameworkRefs 解析主/补充框架", () => {
+  expect(core.normalizeFrameworkRefs([
+    { id: "a", role: "primary" },
+    { id: "b", role: "supplementary" },
+  ]), [
+    { id: "a", role: "primary" },
+    { id: "b", role: "supplementary" },
+  ]);
+});
+
+test("normalizeActivityAssessment 保留质量摘要与 level 建议", () => {
+  const meta = core.normalizeActivityMeta({ title: "活动A", participants: ["张三"] }, "a");
+  const a = core.normalizeActivityAssessment({
+    overview: "ok",
+    quality_summary: { source_count: 2, goal_count: 1, gaps: ["缺观察"] },
+    level_proposals: [{
+      student: "张三", framework_id: "f1", framework_name: "框架", goal: "CCD.3", goal_title: "协作",
+      current_level: "L3", proposed_level: "L4", confidence: 0.8, met: "true", evidence_refs: ["x"],
+      reason: "两次观察", context_note: "课堂",
+    }],
+    teaching_feedback: { leading: ["多给提示"], evidence_collection: ["补观察"], next_observation: ["看协作"] },
+  }, meta, "test-model");
+  expect(a.quality_summary.source_count, 2);
+  expect(a.level_proposals[0].proposed_level, "L4");
+  expect(a.teaching_feedback.leading[0], "多给提示");
+});
+
+test("renderActivityReport 写入审核状态与框架", () => {
+  const meta = core.normalizeActivityMeta({ title: "活动A", participants: ["张三"] }, "a");
+  const a = core.normalizeActivityAssessment({ overview: "ok", students: [] }, meta, "test-model");
+  a.framework_refs = [{ id: "f1", role: "primary" }];
+  a.framework_versions = ["f1@1"];
+  const md = report.renderActivityReport(a);
+  ok(md.includes("review_status: \"pending_review\""), "缺审核状态");
+  ok(md.includes("framework_refs:"), "缺框架");
+  ok(md.includes("framework_versions:"), "缺框架版本");
+});
+
 /* ---------------- DeepSeek 官方接口 ---------------- */
 
 test("ocrEndpoint 支持 /tools/ocr 拼接", () => {

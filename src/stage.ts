@@ -7,6 +7,7 @@ import type {
   ActivityRecord,
   AssessmentSettings,
   ContextBlock,
+  FrameworkRef,
   OverviewAssessment,
   StageAssessment,
 } from "./types";
@@ -41,7 +42,8 @@ import {
   writeText,
 } from "./vault";
 import { readFramework } from "./assess";
-import { writeExternalReport } from "./external";
+import { markReportPending } from "./review";
+import { buildFrameworkContext, listFrameworks } from "./framework";
 import { renderOverviewReport } from "./report";
 import type { ProgressSink } from "./organize";
 
@@ -164,6 +166,76 @@ export interface OverviewResult {
   externalPath?: string;
 }
 
+async function reportFramework(
+  app: App,
+  settings: AssessmentSettings,
+  explicitRefs?: FrameworkRef[],
+): Promise<{ text: string; refs: FrameworkRef[]; versions: string[]; hashes: string[] }> {
+  const frameworks = await listFrameworks(app, settings);
+  const refs: FrameworkRef[] = explicitRefs?.length
+    ? explicitRefs
+    : frameworks.length
+      ? [{ id: frameworks[0].id, role: "primary" }]
+      : [];
+  const context = await buildFrameworkContext(app, settings, refs);
+  return {
+    text: context.text || (await readFramework(app, settings)),
+    refs,
+    versions: context.versions,
+    hashes: context.hashes,
+  };
+}
+
+async function finalizeStageReport(
+  app: App,
+  reportPath: string,
+  kind: "stage" | "series" | "overview",
+  title: string,
+  assessment: StageAssessment | OverviewAssessment,
+  feedbackPath: string,
+): Promise<void> {
+  const feedback = assessment.teaching_feedback;
+  if (feedback) {
+    const lines = [
+      "---",
+      "type: teaching-feedback",
+      `generated_at: ${new Date().toISOString()}`,
+      "---",
+      "",
+      `# 教学反馈：${title}`,
+      "",
+      "> 给本地导师的课堂/行动带领、证据收集和下一次观察建议。",
+      "",
+      "## 一、课堂/行动带领",
+      "",
+      ...(feedback.leading.length ? feedback.leading.map((item) => `- ${item}`) : ["- 暂无建议。"]),
+      "",
+      "## 二、证据与信息收集",
+      "",
+      ...(feedback.evidence_collection.length ? feedback.evidence_collection.map((item) => `- ${item}`) : ["- 暂无建议。"]),
+      "",
+      "## 三、下一次观察",
+      "",
+      ...(feedback.next_observation.length ? feedback.next_observation.map((item) => `- ${item}`) : ["- 暂无建议。"]),
+      "",
+    ];
+    await writeText(app, feedbackPath, lines.join("\n"));
+  }
+  const participants =
+    "participants" in assessment
+      ? assessment.participants
+      : "student" in assessment
+        ? [assessment.student]
+        : undefined;
+  await markReportPending(app, reportPath, kind, {
+    quality: assessment.quality_summary,
+    proposals: assessment.level_proposals,
+    feedback: assessment.teaching_feedback,
+    actionTitle: title,
+    participants,
+  });
+}
+
 async function collectOverviewPhotos(app: App, activities: ActivityRecord[]): Promise<string[]> {
   const photos: string[] = [];
   for (const activity of activities) {
@@ -209,7 +281,9 @@ export async function generateProjectOverviewReport(
   const blocks = await collectOverviewBlocks(app, activities, participants, progress);
   if (!blocks.length) throw new Error("项目内还没有行动报告或证据，请先生成行动报告。");
 
-  const framework = await readFramework(app, settings);
+  const projectSeries = (await listSeriesRecords(app, settings)).find((item) => item.meta.title === projectName);
+  const frameworkMeta = await reportFramework(app, settings, projectSeries?.meta.framework_refs);
+  const framework = frameworkMeta.text;
   const context = buildContext(blocks, settings.maxContextChars);
   const periodLabel = period.trim() || projectName;
   const messages = buildOverviewMessages({
@@ -233,30 +307,20 @@ export async function generateProjectOverviewReport(
     activities.length,
   );
   assessment.evidence_photos = await collectOverviewPhotos(app, activities);
+  assessment.framework_refs = frameworkMeta.refs;
+  assessment.framework_versions = frameworkMeta.versions;
+  assessment.framework_hashes = frameworkMeta.hashes;
 
-  const series = (await listSeriesRecords(app, settings)).find((item) => item.meta.title === projectName);
-  const folder = `${series?.folder ?? `${settings.dataRoot}/${FOLDERS.series}/${sanitizeName(projectName)}`}/报告`;
+  const folder = `${projectSeries?.folder ?? `${settings.dataRoot}/${FOLDERS.series}/${sanitizeName(projectName)}`}/报告`;
   await ensureFolder(app, folder);
   const base = `项目总报告_${sanitizeName(periodLabel)}`;
   const reportPath = `${folder}/${base}.md`;
   const markdown = renderOverviewReport(assessment);
   await writeText(app, reportPath, markdown);
   await writeText(app, `${folder}/${base}.json`, `${JSON.stringify(assessment, null, 2)}\n`);
-  let externalPath: string | undefined;
-  try {
-    externalPath = await writeExternalReport(
-      app,
-      settings,
-      markdown,
-      folder,
-      participants,
-      `${base}_对外.md`,
-    );
-  } catch (error) {
-    progress.log(`对外版生成失败：${error instanceof Error ? error.message : String(error)}`);
-  }
-  progress.status(`项目总报告已生成：${reportPath}`);
-  return { assessment, reportPath, externalPath };
+  await finalizeStageReport(app, reportPath, "overview", base, assessment, `${folder}/教学反馈_${sanitizeName(periodLabel)}.md`);
+  progress.status(`项目总报告已生成，待本地导师审核：${reportPath}`);
+  return { assessment, reportPath };
 }
 
 export async function generateTermOverviewReport(
@@ -276,7 +340,8 @@ export async function generateTermOverviewReport(
   const blocks = await collectOverviewBlocks(app, activities, participants, progress);
   if (!blocks.length) throw new Error("还没有行动报告或证据，请先生成行动报告。");
 
-  const framework = await readFramework(app, settings);
+  const frameworkMeta = await reportFramework(app, settings);
+  const framework = frameworkMeta.text;
   const context = buildContext(blocks, settings.maxContextChars);
   const messages = buildOverviewMessages({
     kind: "term_overview",
@@ -299,6 +364,9 @@ export async function generateTermOverviewReport(
     activities.length,
   );
   assessment.evidence_photos = await collectOverviewPhotos(app, activities);
+  assessment.framework_refs = frameworkMeta.refs;
+  assessment.framework_versions = frameworkMeta.versions;
+  assessment.framework_hashes = frameworkMeta.hashes;
 
   const folder = `${settings.dataRoot}/${FOLDERS.reports}`;
   await ensureFolder(app, folder);
@@ -307,21 +375,9 @@ export async function generateTermOverviewReport(
   const markdown = renderOverviewReport(assessment);
   await writeText(app, reportPath, markdown);
   await writeText(app, `${folder}/${base}.json`, `${JSON.stringify(assessment, null, 2)}\n`);
-  let externalPath: string | undefined;
-  try {
-    externalPath = await writeExternalReport(
-      app,
-      settings,
-      markdown,
-      folder,
-      participants,
-      `${base}_对外.md`,
-    );
-  } catch (error) {
-    progress.log(`对外版生成失败：${error instanceof Error ? error.message : String(error)}`);
-  }
-  progress.status(`学期/学年总报告已生成：${reportPath}`);
-  return { assessment, reportPath, externalPath };
+  await finalizeStageReport(app, reportPath, "overview", base, assessment, `${folder}/教学反馈_${sanitizeName(period)}.md`);
+  progress.status(`学期/学年总报告已生成，待本地导师审核：${reportPath}`);
+  return { assessment, reportPath };
 }
 
 export async function generateStageReport(
@@ -350,7 +406,8 @@ export async function generateStageReport(
     throw new Error("这些活动还没有生成活动报告或证据，先逐个生成活动成长报告。");
   }
 
-  const framework = await readFramework(app, settings);
+  const frameworkMeta = await reportFramework(app, settings);
+  const framework = frameworkMeta.text;
   const context = buildContext(blocks, settings.maxContextChars);
   if (context.truncated) progress.log("多次活动的材料较长，已做中间省略。");
 
@@ -371,6 +428,9 @@ export async function generateStageReport(
   const assessment = normalizeStageAssessment(raw, student, label, settings.aiModel);
   assessment.report_kind = "stage";
   assessment.report_title = "阶段性成长报告";
+  assessment.framework_refs = frameworkMeta.refs;
+  assessment.framework_versions = frameworkMeta.versions;
+  assessment.framework_hashes = frameworkMeta.hashes;
 
   progress.status("写入阶段报告…");
   const folder = `${studentRoot(settings)}/${sanitizeName(student)}`;
@@ -380,19 +440,7 @@ export async function generateStageReport(
   const internalMarkdown = renderStageReport(assessment);
   await writeText(app, reportPath, internalMarkdown);
   await writeText(app, `${folder}/阶段成长报告_${sanitizeName(label.replace(/\s+/g, ""))}.json`, `${JSON.stringify(assessment, null, 2)}\n`);
-  let externalPath: string | undefined;
-  try {
-    externalPath = await writeExternalReport(
-      app,
-      settings,
-      internalMarkdown,
-      folder,
-      [student],
-      fileName.replace(/\.md$/i, "_对外.md"),
-    );
-  } catch (error) {
-    progress.log(`对外版生成失败：${error instanceof Error ? error.message : String(error)}`);
-  }
+  await finalizeStageReport(app, reportPath, "stage", fileName.replace(/\.md$/i, ""), assessment, `${folder}/教学反馈_阶段_${sanitizeName(label)}.md`);
 
   const profilePath = await findStudentNote(app, folder);
   if (profilePath) {
@@ -403,8 +451,8 @@ export async function generateStageReport(
     }
   }
 
-  progress.status(`阶段报告已生成：${reportPath}`);
-  return { assessment, reportPath, externalPath };
+  progress.status(`阶段报告已生成，待本地导师审核：${reportPath}`);
+  return { assessment, reportPath };
 }
 
 export async function generateSeriesReport(
@@ -435,7 +483,9 @@ export async function generateSeriesReport(
     throw new Error("项目内还没有活动报告或证据，先逐个生成活动成长报告。");
   }
 
-  const framework = await readFramework(app, settings);
+  const projectSeries = (await listSeriesRecords(app, settings)).find((item) => item.meta.title === seriesName);
+  const frameworkMeta = await reportFramework(app, settings, projectSeries?.meta.framework_refs);
+  const framework = frameworkMeta.text;
   const context = buildContext(blocks, settings.maxContextChars);
   if (context.truncated) progress.log("项目材料较长，已做中间省略。");
 
@@ -452,6 +502,9 @@ export async function generateSeriesReport(
   const assessment = normalizeStageAssessment(raw, student, label, settings.aiModel);
   assessment.report_kind = "series";
   assessment.report_title = "项目成长报告";
+  assessment.framework_refs = frameworkMeta.refs;
+  assessment.framework_versions = frameworkMeta.versions;
+  assessment.framework_hashes = frameworkMeta.hashes;
 
   progress.status("写入项目报告…");
   const folder = `${studentRoot(settings)}/${sanitizeName(student)}`;
@@ -461,19 +514,7 @@ export async function generateSeriesReport(
   const internalMarkdown = renderStageReport(assessment);
   await writeText(app, reportPath, internalMarkdown);
   await writeText(app, `${folder}/${base}.json`, `${JSON.stringify(assessment, null, 2)}\n`);
-  let externalPath: string | undefined;
-  try {
-    externalPath = await writeExternalReport(
-      app,
-      settings,
-      internalMarkdown,
-      folder,
-      [student],
-      `${base}_对外.md`,
-    );
-  } catch (error) {
-    progress.log(`对外版生成失败：${error instanceof Error ? error.message : String(error)}`);
-  }
+  await finalizeStageReport(app, reportPath, "series", base, assessment, `${folder}/教学反馈_${sanitizeName(seriesName)}.md`);
 
   const profilePath = await findStudentNote(app, folder);
   if (profilePath) {
@@ -484,6 +525,6 @@ export async function generateSeriesReport(
     }
   }
 
-  progress.status(`项目报告已生成：${reportPath}`);
-  return { assessment, reportPath, externalPath };
+  progress.status(`项目报告已生成，待本地导师审核：${reportPath}`);
+  return { assessment, reportPath };
 }

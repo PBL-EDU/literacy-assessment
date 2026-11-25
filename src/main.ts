@@ -10,6 +10,7 @@ import {
   createSeries,
   createStudentProfile,
   ensureDataStructure,
+  findActivityReportPath,
   findStudentNote,
   listActivities,
   listArtifacts,
@@ -19,6 +20,7 @@ import {
   openFile,
   pathExists,
   readActivity,
+  readText,
   syncAllRelations,
   updateActivityStatus,
   writeText,
@@ -48,6 +50,12 @@ import {
 } from "./modal";
 import { testConnection } from "./ai";
 import { canOcrFile } from "./ocr";
+import { listFrameworks } from "./framework";
+import { ensureLiteracyProfile } from "./profile";
+import { installBundleFromVault } from "./frameworkBundle";
+import { approveReport, isApproved, readReview, requestChanges } from "./review";
+import { PendingReviewsModal, ReviewModal, type PendingReviewItem } from "./reviewModal";
+import { writeExternalReport } from "./external";
 import { groupActionsBySeries, LEGACY_SERIES_FOLDER, resolveFrameworkPath, unique } from "./core";
 import { importGetnoteRecordings } from "./ingest";
 import { testGetnoteConnection as testGetnote } from "./getnote";
@@ -93,6 +101,8 @@ export default class LiteracyAssessmentPlugin extends Plugin {
       name: "查看得到导入",
       callback: () => void this.openGetnoteCatalog(),
     });
+    this.addCommand({ id: "review-pending", name: "待我审核", callback: () => void this.openPendingReviews() });
+    this.addCommand({ id: "sync-profiles", name: "补建/同步学生素养档案", callback: () => void this.syncStudentProfiles() });
     this.addCommand({ id: "export-pdf", name: "导出当前报告为 PDF", callback: () => void this.exportActiveReportPdf() });
     this.addCommand({ id: "sync-links", name: "同步双链关系", callback: () => void this.syncRelations() });
     this.addCommand({
@@ -199,19 +209,22 @@ export default class LiteracyAssessmentPlugin extends Plugin {
   }
 
   openCreateSeries(): void {
-    new NewSeriesModal(this.app, (input) => {
-      void (async () => {
-        try {
-          const record = await createSeries(this.app, this.settings, input);
-          new Notice(`已创建项目：${record.meta.title}`);
-          await syncAllRelations(this.app, this.settings);
-          await openFile(this.app, record.notePath);
-          this.refreshViews();
-        } catch (error) {
-          new Notice(`创建项目失败：${error instanceof Error ? error.message : String(error)}`, 8000);
-        }
-      })();
-    }).open();
+    void (async () => {
+      const frameworks = await listFrameworks(this.app, this.settings);
+      new NewSeriesModal(this.app, frameworks, (input) => {
+        void (async () => {
+          try {
+            const record = await createSeries(this.app, this.settings, input);
+            new Notice(`已创建项目：${record.meta.title}`);
+            await syncAllRelations(this.app, this.settings);
+            await openFile(this.app, record.notePath);
+            this.refreshViews();
+          } catch (error) {
+            new Notice(`创建项目失败：${error instanceof Error ? error.message : String(error)}`, 8000);
+          }
+        })();
+      }).open();
+    })();
   }
 
   openCreateGroup(): void {
@@ -226,6 +239,9 @@ export default class LiteracyAssessmentPlugin extends Plugin {
           void (async () => {
             try {
               const record = await createGroup(this.app, this.settings, input);
+              for (const student of record.meta.members) {
+                await ensureLiteracyProfile(this.app, this.settings, student);
+              }
               new Notice(`已创建小组：${record.meta.name}`);
               await syncAllRelations(this.app, this.settings);
               await openFile(this.app, record.notePath);
@@ -244,6 +260,7 @@ export default class LiteracyAssessmentPlugin extends Plugin {
       void (async () => {
         try {
           const folder = await createStudentProfile(this.app, this.settings, name);
+          await ensureLiteracyProfile(this.app, this.settings, name);
           const notePath = await findStudentNote(this.app, folder);
           new Notice(`已创建同学：${name}`);
           if (notePath) await openFile(this.app, notePath);
@@ -262,6 +279,9 @@ export default class LiteracyAssessmentPlugin extends Plugin {
         void (async () => {
           try {
             const record = await createActivity(this.app, this.settings, input);
+            for (const student of record.meta.participants) {
+              await ensureLiteracyProfile(this.app, this.settings, student);
+            }
             new Notice(`已创建：${record.meta.title}`);
             await syncAllRelations(this.app, this.settings);
             await this.openActivity(record);
@@ -275,11 +295,12 @@ export default class LiteracyAssessmentPlugin extends Plugin {
   }
 
   private async buildActivityOptions(): Promise<ActivityFormOptions> {
-    const [seriesRecords, groupRecords, students, activities] = await Promise.all([
+    const [seriesRecords, groupRecords, students, activities, frameworks] = await Promise.all([
       listSeriesRecords(this.app, this.settings),
       listGroups(this.app, this.settings),
       listStudents(this.app, this.settings),
       this.getActivities(),
+      listFrameworks(this.app, this.settings),
     ]);
     const series = seriesRecords.map((item) => ({
       name: item.meta.title,
@@ -293,12 +314,15 @@ export default class LiteracyAssessmentPlugin extends Plugin {
     const goals = unique([
       ...seriesRecords.flatMap((item) => item.meta.goals),
       ...activities.flatMap((activity) => activity.meta.goals),
+      ...frameworks.flatMap((framework) => framework.goals.map((goal) => `${goal.id} ${goal.title}`)),
     ]);
     return {
       series,
       groups: groupRecords.map((item) => ({ name: item.meta.name, members: item.meta.members })),
       students,
       goals,
+      frameworks,
+      defaultFrameworkRefs: frameworks.length ? [{ id: frameworks[0].id, role: "primary" as const }] : [],
     };
   }
 
@@ -381,7 +405,7 @@ export default class LiteracyAssessmentPlugin extends Plugin {
 
   async runReport(record: ActivityRecord): Promise<void> {
     const ok = await this.confirm(
-      "本次将把活动笔记、导师观察、转写与图像说明发送到设置里的 AI 服务，用来生成证据清单和成长报告。报告会保存在本地，由你确认后使用。",
+      "本次将把活动笔记、导师观察、转写与图像说明发送到设置里的 AI 服务，生成证据、level 建议、总体评估和建议报告。生成后需要你在「审核报告」里审核 level 和总体结论；批准前 PDF 不可导出。",
     );
     if (!ok) return;
 
@@ -395,6 +419,131 @@ export default class LiteracyAssessmentPlugin extends Plugin {
     if (reportPath && this.settings.autoOpenReport) {
       await openFile(this.app, reportPath);
     }
+  }
+
+  async syncStudentProfiles(): Promise<void> {
+    const students = await listStudents(this.app, this.settings);
+    for (const student of students) {
+      await ensureLiteracyProfile(this.app, this.settings, student);
+    }
+    new Notice(`已同步 ${students.length} 位同学的素养档案。`);
+    this.refreshViews();
+  }
+
+  async importFrameworkBundle(path: string): Promise<string> {
+    const installed = await installBundleFromVault(this.app, this.settings, path);
+    this.refreshViews();
+    return installed;
+  }
+
+  async openReview(record: ActivityRecord): Promise<void> {
+    const reportPath = await findActivityReportPath(this.app, record);
+    if (!reportPath) {
+      new Notice("这份行动还没有报告，先点「生成报告」。");
+      return;
+    }
+    const review = await readReview(this.app, reportPath);
+    if (!review) {
+      new Notice("这份报告是旧版本，没有审核记录；重新生成后会进入审核。");
+      return;
+    }
+    new ReviewModal(
+      this.app,
+      review,
+      `${record.meta.title} · 行动成长报告`,
+      async (decisions, notes) => {
+        await approveReport(this.app, this.settings, reportPath, decisions, {
+          reviewer: "本地导师",
+          notes,
+          actionTitle: record.meta.title,
+          projectTitle: record.meta.series,
+        });
+        await updateActivityStatus(this.app, record.folder, "已批准");
+        try {
+          const internal = await readText(this.app, reportPath);
+          const dir = reportPath.split("/").slice(0, -1).join("/");
+          const externalName = reportPath.split("/").pop()?.replace(/\.md$/i, "") + "_对外.md";
+          await writeExternalReport(this.app, this.settings, internal, dir, record.meta.participants, externalName);
+        } catch (error) {
+          new Notice(`报告已批准，但对外版生成失败：${error instanceof Error ? error.message : String(error)}`, 9000);
+        }
+        new Notice("报告已批准；level 已写入素养档案，PDF 和对外版已开放。");
+        this.refreshViews();
+      },
+      async (notes) => {
+        await requestChanges(this.app, reportPath, "本地导师", notes);
+        await updateActivityStatus(this.app, record.folder, "需修改");
+        new Notice("已退回修改。");
+        this.refreshViews();
+      },
+    ).open();
+  }
+
+  async openReviewPath(reportPath: string, title: string): Promise<void> {
+    const review = await readReview(this.app, reportPath);
+    if (!review) {
+      new Notice("这份报告没有审核记录；旧报告可以直接导出 PDF，新报告请重新生成。");
+      return;
+    }
+    new ReviewModal(
+      this.app,
+      review,
+      title,
+      async (decisions, notes) => {
+        await approveReport(this.app, this.settings, reportPath, decisions, {
+          reviewer: "本地导师",
+          notes,
+        });
+        if (review.participants?.length) {
+          try {
+            const internal = await readText(this.app, reportPath);
+            const dir = reportPath.split("/").slice(0, -1).join("/");
+            const externalName = reportPath.split("/").pop()?.replace(/\.md$/i, "") + "_对外.md";
+            await writeExternalReport(this.app, this.settings, internal, dir, review.participants, externalName);
+          } catch (error) {
+            new Notice(`对外版生成失败：${error instanceof Error ? error.message : String(error)}`, 8000);
+          }
+        }
+        new Notice("报告已批准；level 已写入素养档案，PDF 已开放。");
+        this.refreshViews();
+      },
+      async (notes) => {
+        await requestChanges(this.app, reportPath, "本地导师", notes);
+        new Notice("已退回修改。");
+        this.refreshViews();
+      },
+    ).open();
+  }
+
+  async openPendingReviews(): Promise<void> {
+    const activities = await this.getActivities();
+    const items: PendingReviewItem[] = [];
+    const seen = new Set<string>();
+    for (const activity of activities) {
+      const reportPath = await findActivityReportPath(this.app, activity);
+      if (!reportPath || seen.has(reportPath)) continue;
+      const review = await readReview(this.app, reportPath);
+      if (!review || review.status !== "pending_review") continue;
+      seen.add(reportPath);
+      items.push({
+        title: activity.meta.title,
+        subtitle: `${activity.meta.series || "暂不归属"} · ${activity.meta.date}`,
+        open: () => void this.openReview(activity),
+      });
+    }
+    // 项目/学期阶段报告：按审核 sidecar 扫描
+    for (const file of this.app.vault.getFiles()) {
+      if (!file.path.endsWith(".md") || seen.has(file.path) || !this.isReportPath(file.path)) continue;
+      const review = await readReview(this.app, file.path);
+      if (!review || review.status !== "pending_review") continue;
+      seen.add(file.path);
+      items.push({
+        title: file.basename,
+        subtitle: "项目 / 阶段 / 学期报告",
+        open: () => void this.openReviewPath(file.path, file.basename),
+      });
+    }
+    new PendingReviewsModal(this.app, items).open();
   }
 
   async runStageReport(): Promise<void> {
@@ -548,6 +697,7 @@ export default class LiteracyAssessmentPlugin extends Plugin {
   }
 
   private isReportPath(path: string): boolean {
+    if (/教学反馈|审核\.json/.test(path)) return false;
     return /\/报告\//.test(path) || /行动成长报告|项目成长报告|系列成长报告|阶段成长报告|总报告/.test(path);
   }
 
@@ -564,6 +714,11 @@ export default class LiteracyAssessmentPlugin extends Plugin {
     const file = this.app.vault.getAbstractFileByPath(normalizePath(path));
     if (!(file instanceof TFile)) {
       new Notice("找不到这份报告文件。");
+      return;
+    }
+    const review = await readReview(this.app, path);
+    if (review && !isApproved(review)) {
+      new Notice("这份报告还没有通过本地导师审核，PDF 暂不可导出。请先点「审核报告」。", 8000);
       return;
     }
     await openFile(this.app, file.path);
@@ -585,6 +740,14 @@ export default class LiteracyAssessmentPlugin extends Plugin {
   }
 
   async archiveActivity(record: ActivityRecord): Promise<void> {
+    const reportPath = await findActivityReportPath(this.app, record);
+    if (reportPath) {
+      const review = await readReview(this.app, reportPath);
+      if (review && !isApproved(review)) {
+        new Notice("报告还没有通过审核，暂不能归档。请先点「审核报告」。", 8000);
+        return;
+      }
+    }
     const ok = await this.confirm(
       `归档「${record.meta.title}」后，它会从右侧列表消失；行动文件和报告仍保留在目录里。`,
     );

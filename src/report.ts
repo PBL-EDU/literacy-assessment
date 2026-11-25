@@ -2,6 +2,7 @@
  * 报告渲染层：纯函数，输入归一化后的评估结果，输出 Markdown。
  */
 import type { ActivityAssessment, EvidenceItem, OverviewAssessment, StageAssessment } from "./types";
+import { safeFilePart } from "./core";
 
 function yamlScalar(value: string): string {
   return `"${String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
@@ -68,7 +69,20 @@ export function renderActivityReport(a: ActivityAssessment): string {
   lines.push(`mentor: ${yamlScalar(a.mentor)}`);
   lines.push(`generated_at: ${yamlScalar(a.generated_at)}`);
   lines.push(`model: ${yamlScalar(a.model)}`);
-  lines.push(`report_version: "0.2.7"`);
+  lines.push(`report_version: "0.4.0"`);
+  lines.push("framework_refs:");
+  for (const ref of a.framework_refs ?? []) {
+    lines.push(`  - id: ${yamlScalar(ref.id)}`);
+    lines.push(`    role: ${yamlScalar(ref.role)}`);
+  }
+  if (!(a.framework_refs ?? []).length) lines.push("  []");
+  lines.push("framework_versions:");
+  for (const version of a.framework_versions ?? []) lines.push(`  - ${yamlScalar(version)}`);
+  if (!(a.framework_versions ?? []).length) lines.push("  []");
+  lines.push("framework_hashes:");
+  for (const hash of a.framework_hashes ?? []) lines.push(`  - ${yamlScalar(hash)}`);
+  if (!(a.framework_hashes ?? []).length) lines.push("  []");
+  lines.push('review_status: "pending_review"');
   lines.push("---");
   lines.push("");
   const scope = a.activity_series ? `${a.activity_series} · ${a.activity_title}` : a.activity_title;
@@ -148,6 +162,10 @@ export function renderActivityReport(a: ActivityAssessment): string {
     lines.push("（无）");
   }
   lines.push("");
+  lines.push("## 教学反馈");
+  lines.push("");
+  lines.push(`独立教学反馈文件：[[教学反馈_${safeFilePart(a.activity_title)}]]`);
+  lines.push("");
   if (a.evidence_photos?.length) {
     lines.push("## 附：证据照片");
     lines.push("");
@@ -182,7 +200,20 @@ export function renderStageReport(s: StageAssessment): string {
   lines.push(`period: ${yamlScalar(s.period)}`);
   lines.push(`generated_at: ${yamlScalar(s.generated_at)}`);
   lines.push(`model: ${yamlScalar(s.model)}`);
-  lines.push(`report_version: "0.2.7"`);
+  lines.push(`report_version: "0.4.0"`);
+  lines.push("framework_refs:");
+  for (const ref of s.framework_refs ?? []) {
+    lines.push(`  - id: ${yamlScalar(ref.id)}`);
+    lines.push(`    role: ${yamlScalar(ref.role)}`);
+  }
+  if (!(s.framework_refs ?? []).length) lines.push("  []");
+  lines.push("framework_versions:");
+  for (const version of s.framework_versions ?? []) lines.push(`  - ${yamlScalar(version)}`);
+  if (!(s.framework_versions ?? []).length) lines.push("  []");
+  lines.push("framework_hashes:");
+  for (const hash of s.framework_hashes ?? []) lines.push(`  - ${yamlScalar(hash)}`);
+  if (!(s.framework_hashes ?? []).length) lines.push("  []");
+  lines.push('review_status: "pending_review"');
   lines.push("---");
   lines.push("");
   const stageScope = isSeries ? `${s.period} · ${s.student}` : `${s.period} · ${s.student}`;
@@ -260,7 +291,20 @@ export function renderOverviewReport(o: OverviewAssessment): string {
   lines.push(`period: ${yamlScalar(o.period)}`);
   lines.push(`generated_at: ${yamlScalar(o.generated_at)}`);
   lines.push(`model: ${yamlScalar(o.model)}`);
-  lines.push(`report_version: "0.2.7"`);
+  lines.push(`report_version: "0.4.0"`);
+  lines.push("framework_refs:");
+  for (const ref of o.framework_refs ?? []) {
+    lines.push(`  - id: ${yamlScalar(ref.id)}`);
+    lines.push(`    role: ${yamlScalar(ref.role)}`);
+  }
+  if (!(o.framework_refs ?? []).length) lines.push("  []");
+  lines.push("framework_versions:");
+  for (const version of o.framework_versions ?? []) lines.push(`  - ${yamlScalar(version)}`);
+  if (!(o.framework_versions ?? []).length) lines.push("  []");
+  lines.push("framework_hashes:");
+  for (const hash of o.framework_hashes ?? []) lines.push(`  - ${yamlScalar(hash)}`);
+  if (!(o.framework_hashes ?? []).length) lines.push("  []");
+  lines.push('review_status: "pending_review"');
   lines.push("---");
   lines.push("");
   lines.push(`# ${o.report_title}（${o.scope}）`);
