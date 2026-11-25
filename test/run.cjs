@@ -17,7 +17,7 @@ process.on("exit", () => {
   }
 });
 
-for (const file of ["types.ts", "core.ts", "prompt.ts", "report.ts"]) {
+for (const file of ["types.ts", "core.ts", "prompt.ts", "report.ts", "http.ts", "ocr.ts", "asr.ts"]) {
   const source = fs.readFileSync(path.join(root, "src", file), "utf8");
   const out = ts.transpileModule(source, {
     fileName: file,
@@ -34,6 +34,8 @@ for (const file of ["types.ts", "core.ts", "prompt.ts", "report.ts"]) {
 const core = require(path.join(outDir, "core.js"));
 const prompt = require(path.join(outDir, "prompt.js"));
 const report = require(path.join(outDir, "report.js"));
+const ocr = require(path.join(outDir, "ocr.js"));
+const asr = require(path.join(outDir, "asr.js"));
 
 let passed = 0;
 const failures = [];
@@ -485,6 +487,36 @@ test("buildStageMessages 包含阶段与活动", () => {
   ok(all.includes("张三"), "缺学员");
   ok(all.includes("2026 秋"), "缺阶段");
   ok(all.includes("活动A"), "缺活动");
+});
+
+/* ---------------- DeepSeek 官方接口 ---------------- */
+
+test("ocrEndpoint 支持 /tools/ocr 拼接", () => {
+  expect(ocr.ocrEndpoint({ ocrBaseUrl: "https://api.deepseek.com/v1" }), "https://api.deepseek.com/v1/tools/ocr");
+  expect(ocr.ocrEndpoint({ ocrBaseUrl: "https://api.deepseek.com/v1/tools/ocr" }), "https://api.deepseek.com/v1/tools/ocr");
+});
+
+test("parseOcrResponse 保留分页并去掉引用标签", () => {
+  const result = ocr.parseOcrResponse(JSON.stringify({
+    page_count: 2,
+    pages: [
+      { index: 0, text: "<｜ref｜>标题<｜/ref｜><｜box｜>[[1,2,3,4]]<｜/box｜>第一页", finish_reason: "stop" },
+      { index: 1, text: "第二页", finish_reason: "length" },
+    ],
+  }), "text_recognition");
+  expect(result.pageCount, 2);
+  expect(result.pages[0].text, "标题第一页");
+  ok(result.text.includes("## 第 1 页"), "缺少页标题");
+  ok(result.text.includes("可能不完整"), "缺少截断提示");
+});
+
+test("deepseekAsrEndpoint 与结果解析", () => {
+  expect(asr.deepseekAsrEndpoint({ asrBaseUrl: "https://api.deepseek.com/v1" }), "https://api.deepseek.com/v1/tools/asr");
+  const result = asr.parseDeepSeekAsrResult(Buffer.from(JSON.stringify({ text: "你好", duration_ms: 3200 })));
+  expect(result.text, "你好");
+  expect(result.duration, 3.2);
+  expect(result.model, "deepseek-asr");
+  expect(result.segments, []);
 });
 
 /* ---------------- 结果 ---------------- */

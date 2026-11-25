@@ -1,15 +1,18 @@
 /**
- * 语音/视频转写：OpenAI 兼容 /audio/transcriptions，multipart 直传。
+ * 语音/视频转写。
+ * - DeepSeek 官方：POST /v1/tools/asr，短音频（WAV/Ogg，≤8 MB，≤120 秒）。
+ * - OpenAI 兼容：POST /audio/transcriptions，支持更常见的音频/视频格式。
  * 桌面端使用 Node http/https，避开浏览器 CORS 与 requestUrl 的 body 限制。
  */
-import * as http from "http";
-import * as https from "https";
 import { URL } from "url";
 import type { AssessmentSettings, TranscriptResult, TranscriptSegment } from "./types";
 import { mimeForFile } from "./core";
+import { buildMultipart, errorText, postBuffer, type HttpResponse } from "./http";
 
 const MAX_ASR_BYTES = 100 * 1024 * 1024;
 const OPENAI_MAX_BYTES = 25 * 1024 * 1024;
+const DEEPSEEK_MAX_BYTES = 8 * 1024 * 1024;
+const DEEPSEEK_MAX_SECONDS = 120;
 
 function isOpenAiHost(baseUrl: string): boolean {
   try {
@@ -34,96 +37,39 @@ export function asrEndpoint(settings: AssessmentSettings): string {
   return `${base}/audio/transcriptions`;
 }
 
-function fieldPart(boundary: string, name: string, value: string): Buffer {
-  return Buffer.from(
-    `--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`,
-    "utf8",
-  );
+export function deepseekAsrEndpoint(settings: AssessmentSettings): string {
+  const base = (settings.asrBaseUrl || "https://api.deepseek.com/v1").trim().replace(/\/+$/, "");
+  if (/\/tools\/asr$/.test(base)) return base;
+  return `${base}/tools/asr`;
 }
 
-function asciiFileName(fileName: string): string {
-  const dot = fileName.lastIndexOf(".");
-  const ext = dot >= 0 ? fileName.slice(dot + 1).replace(/[^A-Za-z0-9]/g, "") : "bin";
-  const base = (dot >= 0 ? fileName.slice(0, dot) : fileName)
-    .replace(/[^\x20-\x7E]/g, "_")
-    .replace(/["\\\r\n]/g, "_")
-    .slice(0, 80) || "audio";
-  return `${base}.${ext || "bin"}`;
+function isDeepSeekAsrFile(fileName: string): boolean {
+  return /\.(wav|ogg|opus)$/i.test(fileName);
 }
 
-function buildMultipart(
-  boundary: string,
-  fileName: string,
-  mime: string,
-  fileBuffer: Buffer,
-  fields: Record<string, string>,
-): Buffer {
-  const parts: Buffer[] = [];
-  for (const [name, value] of Object.entries(fields)) {
-    if (value) parts.push(fieldPart(boundary, name, value));
+/** 读取 WAV 头里的时长；解析不了返回 undefined，让服务端判断。 */
+export function wavDurationSeconds(buffer: Buffer): number | undefined {
+  if (buffer.length < 44) return undefined;
+  if (buffer.toString("ascii", 0, 4) !== "RIFF" || buffer.toString("ascii", 8, 12) !== "WAVE") return undefined;
+  let offset = 12;
+  let byteRate = 0;
+  let dataSize = 0;
+  while (offset + 8 <= buffer.length) {
+    const chunkId = buffer.toString("ascii", offset, offset + 4);
+    const chunkSize = buffer.readUInt32LE(offset + 4);
+    if (chunkId === "fmt " && offset + 20 <= buffer.length) {
+      byteRate = buffer.readUInt32LE(offset + 16);
+    } else if (chunkId === "data") {
+      dataSize = Math.min(chunkSize, buffer.length - offset - 8);
+      break;
+    }
+    offset += 8 + chunkSize + (chunkSize % 2);
   }
-  const safeName = asciiFileName(fileName);
-  parts.push(
-    Buffer.from(
-      `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${safeName}"\r\nContent-Type: ${mime}\r\n\r\n`,
-      "utf8",
-    ),
-  );
-  parts.push(fileBuffer);
-  parts.push(Buffer.from(`\r\n--${boundary}--\r\n`, "utf8"));
-  return Buffer.concat(parts);
+  if (!byteRate || !dataSize) return undefined;
+  return dataSize / byteRate;
 }
 
-interface HttpResponse {
-  status: number;
-  body: Buffer;
-}
-
-function postBuffer(urlString: string, headers: Record<string, string>, body: Buffer, timeoutMs: number): Promise<HttpResponse> {
-  let url: URL;
-  try {
-    url = new URL(urlString);
-  } catch {
-    return Promise.reject(new AsrError(`语音转写地址不合法：${urlString}`));
-  }
-  const lib = url.protocol === "http:" ? http : https;
-  return new Promise<HttpResponse>((resolve, reject) => {
-    const req = lib.request(
-      {
-        protocol: url.protocol,
-        hostname: url.hostname,
-        port: url.port || (url.protocol === "http:" ? 80 : 443),
-        path: `${url.pathname}${url.search}`,
-        method: "POST",
-        headers: { ...headers, "Content-Length": String(body.length) },
-      },
-      (res) => {
-        const chunks: Buffer[] = [];
-        res.on("data", (chunk: Buffer) => chunks.push(chunk));
-        res.on("end", () => resolve({ status: res.statusCode ?? 0, body: Buffer.concat(chunks) }));
-        res.on("error", (error: Error) => reject(new AsrError(`读取转写响应失败：${error.message}`)));
-      },
-    );
-    req.setTimeout(Math.max(10_000, timeoutMs), () => {
-      req.destroy(new AsrError(`语音转写超时（${Math.round(timeoutMs / 1000)} 秒）`));
-    });
-    req.on("error", (error: Error) => reject(new AsrError(`语音转写请求失败：${error.message}`)));
-    req.write(body);
-    req.end();
-  });
-}
-
-function errorOf(body: Buffer, status: number): string {
-  const text = body.toString("utf8");
-  try {
-    const data = JSON.parse(text) as { error?: { message?: string }; message?: string };
-    return data?.error?.message ?? data?.message ?? text.slice(0, 240);
-  } catch {
-    return text.slice(0, 240) || `HTTP ${status}`;
-  }
-}
-
-function parseResult(body: Buffer, model: string): TranscriptResult {
+function parseOpenAiResult(body: Buffer, model: string): TranscriptResult {
   let data: unknown;
   try {
     data = JSON.parse(body.toString("utf8"));
@@ -156,7 +102,27 @@ function parseResult(body: Buffer, model: string): TranscriptResult {
   };
 }
 
-async function attempt(
+export function parseDeepSeekAsrResult(body: Buffer): TranscriptResult {
+  let data: unknown;
+  try {
+    data = JSON.parse(body.toString("utf8").trim());
+  } catch {
+    throw new AsrError("DeepSeek 转写返回的不是 JSON，请检查接口地址。");
+  }
+  const record = data as { error?: { message?: string }; text?: unknown; duration_ms?: unknown };
+  if (record.error?.message) throw new AsrError(`DeepSeek 转写失败：${record.error.message}`);
+  const text = typeof record.text === "string" ? record.text.trim() : "";
+  if (!text) throw new AsrError("DeepSeek 转写返回了空文本，可能是音频格式不支持或文件损坏。");
+  const duration = Number(record.duration_ms);
+  return {
+    text,
+    segments: [],
+    duration: Number.isFinite(duration) && duration > 0 ? duration / 1000 : undefined,
+    model: "deepseek-asr",
+  };
+}
+
+async function openAiAttempt(
   settings: AssessmentSettings,
   fileBuffer: Buffer,
   fileName: string,
@@ -173,18 +139,85 @@ async function attempt(
     );
   }
   if (!fileBuffer.length) throw new AsrError("素材文件是空的。");
+  if (!settings.asrApiKey) throw new AsrError("还没有配置转写 API Key：设置 → 素养评估 → 语音转写");
   const boundary = `----literacy${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`;
   const body = buildMultipart(boundary, fileName, mimeForFile(fileName), fileBuffer, {
     model: settings.asrModel,
     language: settings.asrLanguage,
     response_format: responseFormat,
   });
-  const headers: Record<string, string> = {
-    "Content-Type": `multipart/form-data; boundary=${boundary}`,
-    Authorization: `Bearer ${settings.asrApiKey}`,
-    Accept: "application/json",
-  };
-  return postBuffer(asrEndpoint(settings), headers, body, Math.max(settings.aiTimeoutMs, 180_000));
+  return postBuffer(
+    asrEndpoint(settings),
+    {
+      "Content-Type": `multipart/form-data; boundary=${boundary}`,
+      Authorization: `Bearer ${settings.asrApiKey}`,
+      Accept: "application/json",
+    },
+    body,
+    Math.max(settings.aiTimeoutMs, 180_000),
+  );
+}
+
+async function transcribeWithOpenAi(
+  settings: AssessmentSettings,
+  buffer: Buffer,
+  fileName: string,
+): Promise<TranscriptResult> {
+  let response = await openAiAttempt(settings, buffer, fileName, "verbose_json");
+  if (response.status >= 400 && response.status < 500) {
+    const message = errorText(response.body, response.status);
+    // 一些网关只支持 json，不支持 verbose_json
+    if (/verbose|response_format|unsupported|invalid/i.test(message)) {
+      response = await openAiAttempt(settings, buffer, fileName, "json");
+    }
+  }
+  if (response.status === 401 || response.status === 403) {
+    throw new AsrError(`转写 API Key 无效或没有权限（HTTP ${response.status}）：${errorText(response.body, response.status)}`);
+  }
+  if (response.status >= 400) {
+    throw new AsrError(`语音转写失败（HTTP ${response.status}）：${errorText(response.body, response.status)}`);
+  }
+  return parseOpenAiResult(response.body, settings.asrModel);
+}
+
+async function transcribeWithDeepSeek(
+  settings: AssessmentSettings,
+  buffer: Buffer,
+  fileName: string,
+): Promise<TranscriptResult> {
+  if (!isDeepSeekAsrFile(fileName)) {
+    throw new AsrError(
+      `DeepSeek 官方转写只支持 WAV/Ogg/Opus，当前文件是「${fileName}」。` +
+        "请把音频转成 WAV，或在设置里改用「OpenAI 兼容 /audio/transcriptions」。",
+    );
+  }
+  if (buffer.length > DEEPSEEK_MAX_BYTES) {
+    throw new AsrError("DeepSeek 官方转写单文件上限 8 MB；请切分后再试，或改用其他转写服务。");
+  }
+  const duration = wavDurationSeconds(buffer);
+  if (duration && duration > DEEPSEEK_MAX_SECONDS) {
+    throw new AsrError(
+      `DeepSeek 官方转写最长 120 秒，当前 WAV 约 ${Math.round(duration)} 秒。请切分，或改用其他转写服务。`,
+    );
+  }
+  const key = settings.asrApiKey || settings.aiApiKey;
+  if (!key) throw new AsrError("还没有配置 DeepSeek 转写 API Key：设置 → 素养评估 → AI 服务/语音转写");
+  const boundary = `----literacy${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`;
+  const body = buildMultipart(boundary, fileName, mimeForFile(fileName), buffer, {});
+  const response = await postBuffer(
+    deepseekAsrEndpoint(settings),
+    {
+      "Content-Type": `multipart/form-data; boundary=${boundary}`,
+      Authorization: `Bearer ${key}`,
+      Accept: "application/json",
+    },
+    body,
+    Math.max(settings.aiTimeoutMs, 180_000),
+  );
+  if (response.status >= 400) {
+    throw new AsrError(`DeepSeek 转写失败（HTTP ${response.status}）：${errorText(response.body, response.status)}`);
+  }
+  return parseDeepSeekAsrResult(response.body);
 }
 
 export async function transcribeFile(
@@ -193,22 +226,10 @@ export async function transcribeFile(
   fileName: string,
 ): Promise<TranscriptResult> {
   if (!settings.asrEnabled) throw new AsrError("语音转写已在设置里关闭。");
-  if (!settings.asrApiKey) throw new AsrError("还没有配置语音转写 API Key：设置 → 素养评估 → 语音转写");
-
   const buffer = Buffer.isBuffer(fileBuffer) ? fileBuffer : Buffer.from(fileBuffer as ArrayBuffer);
-  let response = await attempt(settings, buffer, fileName, "verbose_json");
-  if (response.status >= 400 && response.status < 500) {
-    const message = errorOf(response.body, response.status);
-    // 一些网关只支持 json，不支持 verbose_json
-    if (/verbose|response_format|unsupported|invalid/i.test(message)) {
-      response = await attempt(settings, buffer, fileName, "json");
-    }
+  if (!buffer.length) throw new AsrError("素材文件是空的。");
+  if (settings.asrProvider === "deepseek") {
+    return transcribeWithDeepSeek(settings, buffer, fileName);
   }
-  if (response.status === 401 || response.status === 403) {
-    throw new AsrError(`转写 API Key 无效或没有权限（HTTP ${response.status}）：${errorOf(response.body, response.status)}`);
-  }
-  if (response.status >= 400) {
-    throw new AsrError(`语音转写失败（HTTP ${response.status}）：${errorOf(response.body, response.status)}`);
-  }
-  return parseResult(response.body, settings.asrModel);
+  return transcribeWithOpenAi(settings, buffer, fileName);
 }

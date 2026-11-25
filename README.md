@@ -27,8 +27,8 @@ The plugin has no server and no telemetry. It contacts only the AI provider and 
 Released under the **GNU Affero General Public License v3.0 (AGPL-3.0-only)**. You may use, modify, and distribute it, including commercially, provided you comply with the AGPL. A separate commercial license is available for organizations that cannot accept the AGPL obligations. See [LICENSE](LICENSE) and [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md).
 
 - 插件 id：`literacy-assessment`
-- 版本：`0.2.7`
-- 形态：Obsidian 桌面端插件；数据全部在本地库；AI 通过 OpenAI 兼容接口调用，导师自带 Key
+- 版本：`0.3.0`
+- 形态：Obsidian 桌面端插件；数据全部在本地库；优先调用 DeepSeek 官方 API，导师自带 Key；不需要安装 DeepSeek Harness
 - 不引入 ffmpeg / 本地模型 / 常驻服务
 - 授权：个人导师免费使用；机构部署/商用需书面授权（见 [LICENSE](LICENSE)）
 - 许可证：**AGPL-3.0**；可自由使用/修改/分发（含商业用途），但需遵守 AGPL 的源码与网络使用条款；不接受 AGPL 的机构可购买商业授权（见 [LICENSE](LICENSE) 与 [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md)）
@@ -41,7 +41,7 @@ Released under the **GNU Affero General Public License v3.0 (AGPL-3.0-only)**. Y
 
 1. 收集非结构化素材：学习单、作品、学生复盘（录音/文字）、导师评估（录音/文字）、导师复盘（录音/文字）、课堂照片/录音/视频。
 2. 按「项目 → 行动」归集到 `01_项目/<项目>/行动/日期_名称/`（旧库 `01_系列` 仍可读）。
-3. AI 整理：录音/视频转文字（带时间戳），照片/学习单写观察说明，视频抽 3 个关键帧写画面说明。
+3. AI 整理：录音/视频转文字，PDF/Word/PowerPoint OCR，照片/学习单写观察说明，视频抽 3 个关键帧写画面说明。
 4. 对照本次教学目标，生成**行动成长报告**（证据 + 报告，标题和文件名含项目/行动）。
 5. 按项目生成单同学项目报告与项目总报告；按学期/学年生成单同学阶段报告与机构总报告。
 6. 每份报告同时生成内部版与对外版（化名、照片模糊）。
@@ -58,8 +58,9 @@ Released under the **GNU Affero General Public License v3.0 (AGPL-3.0-only)**. Y
 | 得到大脑录音同步（暂存 → 匹配已有行动） | 侧栏「同步得到」/ 命令面板 |
 | 得到导入总目录（每条笔记存放/归口位置） | 侧栏「查看导入」/ `05_导入/得到/00_得到导入总目录.md` |
 | 扫描素材、生成素材清单 | 侧栏「扫描」/ 右键行动笔记 |
-| 录音/视频转写（OpenAI 兼容 ASR） | 侧栏「AI 整理」 |
-| 照片/学习单图像说明（视觉模型） | 侧栏「AI 整理」 |
+| 录音/视频转写（DeepSeek 短音频或 OpenAI 兼容 ASR） | 侧栏「AI 整理」 |
+| PDF/Word/PowerPoint OCR（DeepSeek 官方） | 侧栏「AI 整理」 |
+| 照片/学习单图像说明（DeepSeek `deepseek-flash`） | 侧栏「AI 整理」 |
 | 视频关键帧说明（抽 3 帧，best effort） | 侧栏「AI 整理」 |
 | 学习目标证据抽取（JSON） | 侧栏「生成报告」 |
 | 行动成长报告（项目 · 行动） | 侧栏「生成报告」 |
@@ -96,20 +97,20 @@ npm run build
 
 在 Obsidian 设置 → 第三方插件里启用「素养评估」。
 
-想先试一下：从 [GitHub Releases](https://github.com/PBL-EDU/literacy-assessment/releases/tag/0.2.7) 下载 `main.js`、`manifest.json`、`styles.css`，放入插件目录；或使用 zip 安装包。不要把测试用的学生素材库提交到本仓库。
+想先试一下：从 [GitHub Releases](https://github.com/PBL-EDU/literacy-assessment/releases/tag/0.3.0) 下载 `main.js`、`manifest.json`、`styles.css`，放入插件目录；或使用 zip 安装包。不要把测试用的学生素材库提交到本仓库。
 
-BRAT 用户添加仓库 `PBL-EDU/literacy-assessment`，选择 `0.2.7` 即可。
+BRAT 用户添加仓库 `PBL-EDU/literacy-assessment`，选择 `0.3.0` 即可。
 
 ## 快速上手
 
-1. 设置 → 素养评估：填 AI 服务、转写服务；点「测试连接」。
-2. 设置 → 得到大脑：填 API Key / Client ID（需得到大脑会员）。
+1. 设置 → 素养评估 → AI 服务：点「DeepSeek 官方（推荐）」，填 DeepSeek API Key；点「测试连接」。
+2. OCR 默认使用同一个 Key；短音频转写可保持「DeepSeek 官方」，长录音/MP3/M4A 改用 OpenAI 兼容转写服务。
 3. 侧栏「素养评估」→ 新建项目（可选）→ 新建小组/同学（可选）→ 新建行动：归属项目默认「暂不归属」（之后可补），勾选小组/同学、勾选/新增教学目标。
-4. 用得到录音卡/录音台录课；侧栏点「同步得到」，先暂存到 `05_导入/得到/`，再按时间 + 内容匹配到**已有行动**；匹配成功只把转写/总结拷贝到该行动 `素材/`，原始录音始终留在得到暂存区。未匹配继续留在暂存区。
-5. 再点「扫描」→「AI 整理」→「生成报告」（单次行动，自动带证据照片）。
+4. 把录音、视频、照片、PDF/Word 学习单放进行动 `素材/`；再点「扫描」→「AI 整理」。
+5. 点「生成报告」（单次行动，自动带证据照片）。
 6. 同一项目的多次行动，点项目标题旁「项目报告」；按学员/时间的阶段报告在命令面板；报告可导出 PDF。
 
-详细说明见 [使用指南](docs/使用指南.md)。
+详细说明见 [使用指南](docs/使用指南.md) 和 [v0.3.0 操作手册](docs/素养教师工作台-操作手册-v0.3.0.pdf)。
 
 ## 数据目录
 

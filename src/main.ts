@@ -47,6 +47,7 @@ import {
   type ActivityFormOptions,
 } from "./modal";
 import { testConnection } from "./ai";
+import { canOcrFile } from "./ocr";
 import { groupActionsBySeries, LEGACY_SERIES_FOLDER, resolveFrameworkPath, unique } from "./core";
 import { importGetnoteRecordings } from "./ingest";
 import { testGetnoteConnection as testGetnote } from "./getnote";
@@ -152,6 +153,10 @@ export default class LiteracyAssessmentPlugin extends Plugin {
   async loadSettings(): Promise<void> {
     const data = (await this.loadData()) as Partial<AssessmentSettings> | null;
     this.settings = { ...DEFAULT_SETTINGS, ...(data ?? {}) };
+    // 旧版本默认值 deepseek-chat 不能看图；升级后自动切到官方视觉模型。
+    if (this.settings.visionModel === "deepseek-chat") {
+      this.settings.visionModel = "deepseek-flash";
+    }
   }
 
   async saveSettings(): Promise<void> {
@@ -311,9 +316,11 @@ export default class LiteracyAssessmentPlugin extends Plugin {
 
   async runOrganize(record: ActivityRecord): Promise<void> {
     const artifacts = await listArtifacts(this.app, record.folder);
-    const media = artifacts.filter((a) => a.kind === "audio" || a.kind === "video" || a.kind === "image");
+    const media = artifacts.filter(
+      (a) => a.kind === "audio" || a.kind === "video" || a.kind === "image" || a.kind === "document",
+    );
     if (!media.length) {
-      new Notice("素材/ 里没有可整理的录音、视频或图片。");
+      new Notice("素材/ 里没有可整理的录音、视频、图片或 PDF/Word。");
       return;
     }
 
@@ -323,6 +330,15 @@ export default class LiteracyAssessmentPlugin extends Plugin {
     const needsVision = artifacts.filter(
       (artifact) => (artifact.kind === "image" || artifact.kind === "video") && !artifact.hasDescription,
     );
+    const needsOcr = artifacts.filter(
+      (artifact) => artifact.kind === "document" && !artifact.hasTranscript && canOcrFile(artifact.name),
+    );
+    if (needsOcr.length && this.settings.ocrEnabled && !this.settings.ocrApiKey.trim() && !this.settings.aiApiKey.trim()) {
+      new Notice(
+        `检测到 ${needsOcr.length} 个待 OCR 的 PDF/Word，但还没有配置 DeepSeek API Key。请到 设置 → 素养评估 → AI 服务填写 Key，或在 OCR 设置里关闭 OCR。`,
+        12_000,
+      );
+    }
 
     if (needsAsr.length && this.settings.asrEnabled && !this.settings.asrApiKey.trim()) {
       new Notice(
@@ -349,14 +365,14 @@ export default class LiteracyAssessmentPlugin extends Plugin {
     }
 
     const ok = await this.confirm(
-      `本次将把 ${media.length} 个录音/视频/图片发送到设置里的 AI 服务（${this.settings.aiBaseUrl}）。素材只从你的电脑直接发往该服务，不经过白日梦服务器。`,
+      `本次将把 ${media.length} 个录音/视频/图片/文档发送到设置里的 AI 服务（文本：${this.settings.aiBaseUrl}；OCR：${this.settings.ocrBaseUrl}）。素材只从你的电脑直接发往该服务，不经过白日梦服务器。`,
     );
     if (!ok) return;
 
     await this.withProgress("AI 整理素材", async (progress) => {
       const summary = await organizeActivity(this.app, this.settings, record, progress);
       new Notice(
-        `整理完成：转写 ${summary.transcribed}，图像/视频说明 ${summary.described}，跳过 ${summary.skipped}，失败 ${summary.failed}。`,
+        `整理完成：转写 ${summary.transcribed}，OCR ${summary.ocr}，图像/视频说明 ${summary.described}，跳过 ${summary.skipped}，失败 ${summary.failed}。`,
         8000,
       );
     });

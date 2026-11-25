@@ -1,7 +1,7 @@
 {
   "name": "literacy-assessment",
-  "version": "0.2.7",
-  "description": "Local-first literacy assessment workbench for educators: collect activity materials, organize them with AI, and generate evidence-based growth reports.",
+  "version": "0.3.0",
+  "description": "Local-first literacy assessment workbench for educators: DeepSeek official OCR, vision and short ASR, evidence-based growth reports.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",

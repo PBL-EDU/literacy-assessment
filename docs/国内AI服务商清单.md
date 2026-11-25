@@ -9,6 +9,13 @@
 >
 > 授权模式：个人版由导师自己申请 Key、自己付费；机构版可以统一采购/统一网关，也可以各自 BYOK。插件本身不提供模型 API、不代收模型费。
 
+## 〇、DeepSeek 官方（v0.3.0 默认优先）
+
+- 文本/图像理解：`deepseek-flash`（OpenAI 兼容 `chat/completions`，支持图片）。
+- OCR：`POST https://api.deepseek.com/v1/tools/ocr`；支持 PDF、Word、PowerPoint 和图片，≤100 MB、≤1,000 页；约 1.5 元/1,000 页。
+- ASR：`POST https://api.deepseek.com/v1/tools/asr`；仅 WAV/Ogg，≤8 MB、≤120 秒，无时间戳；约 0.78 元/小时（以官方活动价为准）。
+- 一个 DeepSeek API Key 可用于文本、看图、OCR 和短音频；教师不需要安装 DeepSeek Harness。
+
 ## 一、先给结论
 
 | 场景 | 推荐 | 原因 |
@@ -21,8 +28,9 @@
 
 ## 二、语音转写（ASR）
 
-| 服务商 | 接口 | 模型示例 | 单文件限制 | 时间戳 | 与 v0.1 兼容 | 备注 |
+| 服务商 | 接口 | 模型示例 | 单文件限制 | 时间戳 | 与 v0.3.0 兼容 | 备注 |
 | --- | --- | --- | --- | --- | --- | --- |
+| **DeepSeek 官方** | `POST https://api.deepseek.com/v1/tools/asr` | 自动识别 | 8 MB / 120 秒；WAV/Ogg | 否 | ✅ 内置（短音频） | 设置里选「DeepSeek 官方」；长录音需切分或用其他服务 |
 | **硅基流动** | `POST https://api.siliconflow.cn/v1/audio/transcriptions` | `FunAudioLLM/SenseVoiceSmall`、`TeleAI/TeleSpeechASR` | 50 MB / 1 小时 | 否，只返回 `text` | ✅ 可直接接 | 国内；与视觉共用 Key；长录音要切分 |
 | **OpenAI** | `POST https://api.openai.com/v1/audio/transcriptions` | `whisper-1` | 25 MB | 是，`verbose_json` 有 segments | ✅ 可直接接 | 非国内；需网络与合规评估 |
 | **阿里云百炼** | `qwen3-asr-flash`：`chat/completions` + `input_audio`；`qwen3-asr-flash-filetrans`：异步原生接口 | `qwen3-asr-flash`、`qwen3-asr-flash-filetrans` | 同步 5 分钟 / 10 MB；异步 12 小时 / 2 GB | 异步有句级时间戳 | ⚠️ 需适配 | 长课堂录音首选；不是 `/audio/transcriptions` |

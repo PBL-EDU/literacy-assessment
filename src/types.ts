@@ -19,10 +19,16 @@ export interface AssessmentSettings {
   aiTimeoutMs: number;
 
   asrEnabled: boolean;
+  asrProvider: "openai" | "deepseek";
   asrBaseUrl: string;
   asrApiKey: string;
   asrModel: string;
   asrLanguage: string;
+
+  ocrEnabled: boolean;
+  ocrBaseUrl: string;
+  ocrApiKey: string;
+  ocrPurpose: "text_recognition" | "rich_layout_recognition";
 
   visionEnabled: boolean;
   visionModel: string;
@@ -53,13 +59,19 @@ export const DEFAULT_SETTINGS: AssessmentSettings = {
   aiTimeoutMs: 120_000,
 
   asrEnabled: true,
+  asrProvider: "openai",
   asrBaseUrl: "https://api.openai.com/v1",
   asrApiKey: "",
   asrModel: "whisper-1",
   asrLanguage: "zh",
 
+  ocrEnabled: true,
+  ocrBaseUrl: "https://api.deepseek.com/v1",
+  ocrApiKey: "",
+  ocrPurpose: "text_recognition",
+
   visionEnabled: true,
-  visionModel: "deepseek-chat",
+  visionModel: "deepseek-flash",
   visionMaxImages: 20,
 
   getnoteApiBase: "https://openapi.biji.com/open/api/v1",

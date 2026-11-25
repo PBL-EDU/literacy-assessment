@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.3.0 — 2026-11-25
+
+### DeepSeek 官方优先
+
+- 视觉模型默认改为 `deepseek-flash`，修复默认 `deepseek-chat` 不能看图的问题。
+- 设置页新增「DeepSeek 官方（推荐）」预设：文本、看图、OCR、短音频转写共用同一个 Key。
+- 不需要安装 DeepSeek Harness；插件直接调用 DeepSeek 官方 API。
+
+### 新增 OCR
+
+- 接入 DeepSeek 官方 OCR：`POST /v1/tools/ocr`。
+- AI 整理时自动识别 PDF、Word、PowerPoint、扫描图片，写入 `转写/<文件名>.md`。
+- 支持纯文字提取和保留版式两种识别方式；扫描清单显示「待 OCR / 已 OCR」。
+
+### 新增 DeepSeek 短音频转写
+
+- 语音转写新增「DeepSeek 官方（短音频）」模式：WAV/Ogg/Opus，≤8 MB、≤120 秒。
+- 其他格式或长录音继续使用 OpenAI 兼容 `/audio/transcriptions`；设置页明确提示。
+- 任务结果区分「转写 / OCR / 图像说明」数量。
+
+### 文档
+
+- 操作手册按 v0.3.0 重写：Obsidian 下载安装、插件安装、DeepSeek Key 配置、OCR/ASR 边界、报告流程和隐私说明。
+- 移除「必须安装 DSH」的误解；DSH 只是可选的开发/研究工具。
+
 ## 0.2.2 — 2026-11-07
 
 ### Obsidian 目录名称合规

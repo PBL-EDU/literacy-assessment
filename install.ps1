@@ -18,5 +18,5 @@ New-Item -ItemType Directory -Force -Path $dest | Out-Null
 Copy-Item -LiteralPath (Join-Path $source 'main.js'), (Join-Path $source 'manifest.json'), (Join-Path $source 'styles.css'), (Join-Path $source 'LICENSE') -Destination $dest -Force
 
 Write-Host "Installed to: $dest"
-Write-Host "Open Obsidian -> Settings -> Community plugins -> enable 'Literacy Assessment'."
+Write-Host "Open Obsidian -> Settings -> Community plugins -> enable 'Literacy Teacher Workbench'."
 Write-Host "If restricted mode is on, turn it off first."

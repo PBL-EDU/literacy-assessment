@@ -14,6 +14,7 @@ import {
   yamlValue,
 } from "./vault";
 import { transcribeFile } from "./asr";
+import { canOcrFile, ocrFile, renderOcrMarkdown } from "./ocr";
 import { describeImage, describeVideoFrames } from "./vision";
 
 export interface ProgressSink {
@@ -36,6 +37,7 @@ export interface ScanSummary {
 export interface OrganizeSummary {
   transcribed: number;
   described: number;
+  ocr: number;
   skipped: number;
   failed: number;
   notes: string[];
@@ -133,7 +135,11 @@ export async function scanActivity(
         if (artifact.hasDescription) done.push("已说明画面");
         status = done.length ? `✅ ${done.join(" / ")}` : "— 待转写";
       } else if (artifact.kind === "document") {
-        status = "⚠️ 需手动转文字/图片";
+        status = artifact.hasTranscript
+          ? "✅ 已 OCR/提取文字"
+          : canOcrFile(artifact.name) && settings.ocrEnabled
+            ? "— 待 OCR"
+            : "⚠️ 需手动转文字/图片";
       }
       lines.push(`| ${artifact.name} | ${kindLabel(artifact.kind)} | ${formatBytes(artifact.size)} | ${status} |`);
     }
@@ -177,7 +183,7 @@ export async function organizeActivity(
   record: ActivityRecord,
   progress: ProgressSink,
 ): Promise<OrganizeSummary> {
-  const summary: OrganizeSummary = { transcribed: 0, described: 0, skipped: 0, failed: 0, notes: [] };
+  const summary: OrganizeSummary = { transcribed: 0, described: 0, ocr: 0, skipped: 0, failed: 0, notes: [] };
   const artifacts = await listArtifacts(app, record.folder);
   if (!artifacts.length) {
     throw new Error("素材/ 目录是空的。先把学习单、作品、录音、照片、视频放进去。");
@@ -290,15 +296,38 @@ export async function organizeActivity(
     }
 
     if (artifact.kind === "document") {
-      summary.skipped++;
-      summary.notes.push(`${artifact.name}：PDF/Word 暂不自动转写，请导出为图片或文字后再跑。`);
+      if (artifact.hasTranscript) continue;
+      if (!settings.ocrEnabled) {
+        summary.skipped++;
+        summary.notes.push(`${artifact.name}：OCR 已关闭，跳过 PDF/Word。`);
+        continue;
+      }
+      if (!canOcrFile(artifact.name)) {
+        summary.skipped++;
+        summary.notes.push(`${artifact.name}：当前 OCR 只支持 PDF、Word、PowerPoint 和图片。`);
+        continue;
+      }
+      progress.status(`OCR 识别 ${artifact.name}…`);
+      progress.log(`开始 OCR：${artifact.name}（${formatBytes(artifact.size)}）`);
+      try {
+        const binary = await app.vault.adapter.readBinary(artifact.path);
+        const result = await ocrFile(settings, binary, artifact.name);
+        await writeText(app, transcriptPath(record.folder, artifact.name), renderOcrMarkdown(artifact.name, result));
+        summary.ocr++;
+        progress.log(`OCR 完成：${artifact.name}（${result.pageCount} 页）`);
+      } catch (error) {
+        summary.failed++;
+        const message = error instanceof Error ? error.message : String(error);
+        summary.notes.push(`${artifact.name}：${message}`);
+        progress.log(`OCR 失败：${artifact.name} —— ${message}`);
+      }
     }
   }
 
   await scanActivity(app, settings, record);
   await updateActivityStatus(app, record.folder, summary.failed ? "部分整理" : "已整理");
   progress.status(
-    `整理完成：转写 ${summary.transcribed}，图像说明 ${summary.described}，跳过 ${summary.skipped}，失败 ${summary.failed}。`,
+    `整理完成：转写 ${summary.transcribed}，OCR ${summary.ocr}，图像说明 ${summary.described}，跳过 ${summary.skipped}，失败 ${summary.failed}。`,
   );
   for (const note of summary.notes) progress.log(note);
   return summary;

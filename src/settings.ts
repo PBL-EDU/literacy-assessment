@@ -66,10 +66,10 @@ export class LiteracySettingTab extends PluginSettingTab {
       );
 
     /* ---------------- AI 服务 ---------------- */
-    new Setting(containerEl).setName("AI 服务（文本评估）").setHeading();
+    new Setting(containerEl).setName("AI 服务（DeepSeek 官方优先）").setHeading();
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "这里的 Key 只用于文字评估/报告。语音转写和图像理解是另外两套配置，需要分别填 Key。",
+      text: "推荐使用 DeepSeek 官方 API：一个 Key 同时用于文字评估、看图、OCR 和短音频转写。不需要安装 DeepSeek Harness。也可以使用其他 OpenAI 兼容服务。",
     });
 
     new Setting(containerEl)
@@ -94,8 +94,8 @@ export class LiteracySettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName("模型")
-      .setDesc("例如 deepseek-chat、gpt-4o-mini。")
+      .setName("文本模型")
+      .setDesc("DeepSeek 推荐 deepseek-chat；看图模型在下面的「视觉模型」单独设置。")
       .addText((text) =>
         text.setValue(settings.aiModel).onChange(async (value) => {
           settings.aiModel = value.trim();
@@ -105,11 +105,15 @@ export class LiteracySettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("预设")
-      .setDesc("一键填入常见服务地址与模型；Key 仍需自己填。")
+      .setDesc("一键填入推荐地址与模型；Key 仍需自己填。")
       .addButton((button) =>
-        button.setButtonText("DeepSeek").onClick(async () => {
+        button.setButtonText("DeepSeek 官方（推荐）").onClick(async () => {
           settings.aiBaseUrl = "https://api.deepseek.com/v1";
           settings.aiModel = "deepseek-chat";
+          settings.visionModel = "deepseek-flash";
+          settings.ocrBaseUrl = "https://api.deepseek.com/v1";
+          settings.asrProvider = "deepseek";
+          settings.asrBaseUrl = "https://api.deepseek.com/v1";
           await this.plugin.saveSettings();
           this.display();
         }),
@@ -196,7 +200,7 @@ export class LiteracySettingTab extends PluginSettingTab {
     new Setting(containerEl).setName("语音转写").setHeading();
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "需要 OpenAI 兼容的 /audio/transcriptions 服务（如 Whisper），和上面的文本 Key 不是同一个。OpenAI 单文件上限 25 MB；长录音请先压缩/切分，或把得到大脑的转写文字直接放进 素材/。",
+      text: "DeepSeek 官方 ASR 只支持 WAV/Ogg，单文件 ≤8 MB、≤120 秒，适合短语音；MP3/M4A 和长课堂录音请选「OpenAI 兼容」服务，或先把现成转写文字放进 素材/。",
     });
 
     new Setting(containerEl)
@@ -210,8 +214,22 @@ export class LiteracySettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
+      .setName("转写服务")
+      .setDesc("DeepSeek 官方优先；长录音/常见音频格式请用 OpenAI 兼容服务。")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("deepseek", "DeepSeek 官方（短音频）")
+          .addOption("openai", "OpenAI 兼容 /audio/transcriptions")
+          .setValue(settings.asrProvider)
+          .onChange(async (value) => {
+            settings.asrProvider = value === "deepseek" ? "deepseek" : "openai";
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
       .setName("转写服务地址")
-      .setDesc("OpenAI 兼容的 /audio/transcriptions，例如 https://api.openai.com/v1")
+      .setDesc("DeepSeek 填 https://api.deepseek.com/v1；OpenAI 兼容填到 /v1")
       .addText((text) =>
         text.setValue(settings.asrBaseUrl).onChange(async (value) => {
           settings.asrBaseUrl = value.trim();
@@ -221,6 +239,7 @@ export class LiteracySettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("转写 API Key")
+      .setDesc("DeepSeek 官方可留空，自动使用上面的 AI Key；其他服务请单独填。")
       .addText((text) => {
         text.inputEl.type = "password";
         text.setValue(settings.asrApiKey).onChange(async (value) => {
@@ -233,7 +252,17 @@ export class LiteracySettingTab extends PluginSettingTab {
       .setName("转写预设")
       .setDesc("只填地址和模型名，Key 仍需自己填。")
       .addButton((button) =>
+        button.setButtonText("DeepSeek 官方").onClick(async () => {
+          settings.asrProvider = "deepseek";
+          settings.asrBaseUrl = "https://api.deepseek.com/v1";
+          settings.asrLanguage = "zh";
+          await this.plugin.saveSettings();
+          this.display();
+        }),
+      )
+      .addButton((button) =>
         button.setButtonText("硅基流动").onClick(async () => {
+          settings.asrProvider = "openai";
           settings.asrBaseUrl = "https://api.siliconflow.cn/v1";
           settings.asrModel = "FunAudioLLM/SenseVoiceSmall";
           settings.asrLanguage = "zh";
@@ -243,6 +272,7 @@ export class LiteracySettingTab extends PluginSettingTab {
       )
       .addButton((button) =>
         button.setButtonText("OpenAI").onClick(async () => {
+          settings.asrProvider = "openai";
           settings.asrBaseUrl = "https://api.openai.com/v1";
           settings.asrModel = "whisper-1";
           settings.asrLanguage = "zh";
@@ -311,6 +341,58 @@ export class LiteracySettingTab extends PluginSettingTab {
           }
         });
       });
+
+    /* ---------------- OCR ---------------- */
+    new Setting(containerEl).setName("OCR（PDF/Word/PowerPoint）").setHeading();
+    containerEl.createEl("p", {
+      cls: "setting-item-description",
+      text: "DeepSeek 官方 OCR 可以把 PDF、Word、PowerPoint 和图片识别成文字，写入 转写/，供后续证据和报告使用。按页计费；API Key 默认复用上面的 AI Key。",
+    });
+
+    new Setting(containerEl)
+      .setName("启用 OCR")
+      .setDesc("AI 整理时自动识别 素材/ 里的 PDF/Word/PowerPoint。")
+      .addToggle((toggle) =>
+        toggle.setValue(settings.ocrEnabled).onChange(async (value) => {
+          settings.ocrEnabled = value;
+          await this.plugin.saveSettings();
+        }),
+      );
+
+    new Setting(containerEl)
+      .setName("OCR 服务地址")
+      .setDesc("默认 https://api.deepseek.com/v1")
+      .addText((text) =>
+        text.setValue(settings.ocrBaseUrl).onChange(async (value) => {
+          settings.ocrBaseUrl = value.trim() || "https://api.deepseek.com/v1";
+          await this.plugin.saveSettings();
+        }),
+      );
+
+    new Setting(containerEl)
+      .setName("OCR API Key")
+      .setDesc("留空则使用上面的 AI Key。")
+      .addText((text) => {
+        text.inputEl.type = "password";
+        text.setValue(settings.ocrApiKey).onChange(async (value) => {
+          settings.ocrApiKey = value.trim();
+          await this.plugin.saveSettings();
+        });
+      });
+
+    new Setting(containerEl)
+      .setName("识别方式")
+      .setDesc("text_recognition 更快；rich_layout_recognition 更适合复杂版式，但输出更长。")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("text_recognition", "纯文字提取")
+          .addOption("rich_layout_recognition", "保留版式识别")
+          .setValue(settings.ocrPurpose)
+          .onChange(async (value) => {
+            settings.ocrPurpose = value === "rich_layout_recognition" ? "rich_layout_recognition" : "text_recognition";
+            await this.plugin.saveSettings();
+          }),
+      );
 
     /* ---------------- 得到大脑 ---------------- */
     new Setting(containerEl).setName("得到大脑（录音接入）").setHeading();
@@ -460,7 +542,7 @@ export class LiteracySettingTab extends PluginSettingTab {
     new Setting(containerEl).setName("关于").setHeading();
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "素养评估 v0.2.7 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
+      text: "素养评估 v0.3.0 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
     });
     containerEl.createEl("p", {
       cls: "setting-item-description",

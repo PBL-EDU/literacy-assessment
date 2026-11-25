@@ -11,7 +11,7 @@ const ts = require("typescript");
 
 const root = path.join(__dirname, "..");
 const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "literacy-asr-test-"));
-for (const file of ["types.ts", "core.ts", "asr.ts"]) {
+for (const file of ["types.ts", "core.ts", "http.ts", "asr.ts"]) {
   const source = fs.readFileSync(path.join(root, "src", file), "utf8");
   const out = ts.transpileModule(source, {
     fileName: file,
