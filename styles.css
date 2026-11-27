@@ -469,3 +469,5 @@
 .la-target-choice { display: flex; gap: 6px; align-items: center; padding: 2px 0 2px 6px; font-size: 12px; cursor: pointer; }
 .la-target-choice input { margin: 0; }
 .la-target-path { color: var(--text-faint); font-size: 10px; margin-left: auto; }
+.la-target-subhead { font-size: 11px; color: var(--text-muted); margin: 3px 0 1px; }
+.la-target-choice { padding-left: 6px; }

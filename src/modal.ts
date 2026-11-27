@@ -94,7 +94,7 @@ function renderTargetTree(
       for (const goal of node.goals) {
         const key = targetKey(framework.id, goal.id);
         const label = parent.createEl("label", { cls: "la-target-choice" });
-        label.style.paddingLeft = `${level * 14}px`;
+        label.style.paddingLeft = `${Math.max(level - 1, 0) * 14 + 4}px`;
         const checkbox = label.createEl("input", { type: "checkbox" });
         checkbox.checked = selected.has(key);
         checkbox.onchange = () => {
@@ -105,10 +105,21 @@ function renderTargetTree(
         label.createSpan({ cls: "la-target-path", text: goal.path || goal.title });
       }
       for (const child of node.children.values()) {
-        const details = parent.createEl("details", { cls: "la-target-branch" });
-        details.open = level < 1;
-        details.createEl("summary", { text: child.name });
-        renderNode(child, details, level + 1);
+        if (level === 0) {
+          // 一级素养：下拉菜单（可展开/收起）
+          const details = parent.createEl("details", { cls: "la-target-branch" });
+          details.open = true;
+          details.createEl("summary", { text: child.name });
+          renderNode(child, details, level + 1);
+        } else {
+          // 二级素养及以下：不再折叠；直接显示二级名称和目标复选框。
+          if (child.children.size) {
+            const subhead = parent.createDiv({ cls: "la-target-subhead" });
+            subhead.style.paddingLeft = `${Math.max(level, 1) * 14 + 4}px`;
+            subhead.setText(child.name);
+          }
+          renderNode(child, parent, level + 1);
+        }
       }
     };
     renderNode(root, frameDetails, 0);
