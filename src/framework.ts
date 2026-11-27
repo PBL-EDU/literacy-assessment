@@ -15,7 +15,8 @@ import type {
   SeriesRecord,
   TargetRef,
 } from "./types";
-import { splitFrontmatter, stemOf } from "./core";
+import { sanitizeName, splitFrontmatter, stemOf } from "./core";
+import { ensureFolder } from "./vault";
 import { orgActive, orgFrameworks } from "./org";
 
 export const FRAMEWORK_FOLDER = "00_框架";
@@ -140,7 +141,8 @@ export function frameworkFiles(app: App, settings: AssessmentSettings): string[]
     .filter((file) => file.extension === "md")
     .map((file) => file.path)
     .filter((path) => path.startsWith(root))
-    .filter((path) => !path.includes("/_历史/") && !path.includes("/_组织/"))
+    .filter((path) => !path.includes("/_历史/"))
+    .filter((path) => !path.includes("/_组织/") || path.startsWith(`${root}_组织/cache/`))
     .sort((a, b) => a.localeCompare(b, "zh"));
 }
 
@@ -155,9 +157,11 @@ export async function listFrameworks(app: App, settings: AssessmentSettings): Pr
   if (orgActive()) {
     try {
       const remote = await orgFrameworks();
-      return remote.map((item) => {
+      const cacheRoot = `${frameworkRoot(settings)}/_组织/cache`;
+      await ensureFolder(app, cacheRoot);
+      return Promise.all(remote.map(async (item) => {
         const parsed = parseFrameworkText(`org://${item.frameworkId}`, item.markdown);
-        return {
+        const framework = {
           ...parsed,
           id: item.frameworkId || parsed.id,
           name: item.name || parsed.name,
@@ -165,7 +169,16 @@ export async function listFrameworks(app: App, settings: AssessmentSettings): Pr
           hash: item.hash || parsed.hash,
           status: "active",
         };
-      });
+        try {
+          await app.vault.adapter.write(
+            normalizePath(`${cacheRoot}/${sanitizeName(framework.id)}.md`),
+            item.markdown,
+          );
+        } catch {
+          /* 缓存写入失败不影响本次使用 */
+        }
+        return framework;
+      }));
     } catch {
       // 组织网关暂时不可用时使用本地缓存/文件，避免整个侧栏无法工作。
     }
