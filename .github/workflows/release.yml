@@ -28,10 +28,8 @@ jobs:
 
       - name: Package release
         run: |
-          mkdir -p release dist
+          mkdir -p release
           cp main.js manifest.json styles.css LICENSE release/
-          cp "docs/素养教师工作台-操作手册-v0.4.0.pdf" "release/literacy-teacher-workbench-manual-${GITHUB_REF_NAME}.pdf"
-          (cd release && zip -r "../dist/literacy-assessment-${GITHUB_REF_NAME}.zip" .)
 
       - name: Create GitHub Release
         env:
@@ -42,8 +40,7 @@ jobs:
             exit 0
           fi
           gh release create "${GITHUB_REF_NAME}" \
-            "dist/literacy-assessment-${GITHUB_REF_NAME}.zip" \
-            "release/literacy-teacher-workbench-manual-${GITHUB_REF_NAME}.pdf" \
+            release/main.js release/manifest.json release/styles.css release/LICENSE \
             --title "${GITHUB_REF_NAME}" \
-            --notes-file "docs/release-notes-v0.4.0.md" \
+            --notes-file "docs/release-notes-v0.5.0.md" \
             --latest

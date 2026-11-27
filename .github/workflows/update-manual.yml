@@ -31,8 +31,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload 0.4.0 main.js manifest.json styles.css --clobber
+          gh release upload 0.5.0 main.js manifest.json styles.css --clobber
           # Obsidian's community validator downloads only these three files.
-          gh release delete-asset 0.4.0 literacy-assessment-0.4.0.zip --yes || true
-          gh release delete-asset 0.4.0 literacy-teacher-workbench-manual-0.4.0.pdf --yes || true
-          gh release edit 0.4.0 --notes-file "docs/release-notes-v0.4.0.md"
+          gh release delete-asset 0.5.0 literacy-assessment-0.5.0.zip --yes || true
+          gh release delete-asset 0.5.0 literacy-teacher-workbench-manual-0.5.0.pdf --yes || true
+          gh release edit 0.5.0 --notes-file "docs/release-notes-v0.5.0.md"
