@@ -46,6 +46,14 @@ export async function buildApp({ config, db }: BuildOptions): Promise<FastifyIns
     crossOriginEmbedderPolicy: false,
   });
 
+  app.get("/", async (_request, reply) => {
+    return reply.type("text/html").send(`<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>白日梦行动 · 素养教师工作台</title>
+<style>body{margin:0;background:#eef3f4;color:#1f2933;font-family:"Microsoft YaHei","Segoe UI",sans-serif;display:grid;place-items:center;min-height:100vh}main{background:#fff;border:1px solid #d9e2e8;border-radius:12px;padding:32px 38px;max-width:520px;box-shadow:0 12px 35px rgba(15,23,42,.08)}h1{font-size:22px;margin:0 0 8px}p{font-size:14px;line-height:1.8;color:#4b5563}a{color:#0f766e;font-weight:700}</style></head>
+<body><main><h1>白日梦行动 · 素养教师工作台</h1><p>组织服务已运行。</p><p>教师请在 Obsidian 插件中使用邀请码加入组织。</p><p><a href="/admin/login">组织管理员登录</a> · <a href="/health">服务状态</a></p></main></body></html>`);
+  });
+
   app.get("/health", async (_request, reply) => {
     try {
       await db.query("SELECT 1");
