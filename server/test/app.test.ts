@@ -90,6 +90,37 @@ version: "1"
   const admin = await app.inject({ method: "GET", url: "/admin", headers: { cookie: String(cookie) } });
   assert.equal(admin.statusCode, 200);
 
+  const boundary = "----literacy-test-boundary";
+  const frameworkMarkdown = `---
+framework_id: uploaded
+name: 上传测试框架
+version: "1"
+---
+
+| 路径 | 目标ID | 目标 | 维度 | L1 | L2 |
+| --- | --- | --- | --- | --- | --- |
+| 一级/二级 | G.1 | 目标 | 维度 | 初 | 进 |
+`;
+  const uploadBody = Buffer.from(
+    `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="framework.md"\r\nContent-Type: text/markdown\r\n\r\n${frameworkMarkdown}\r\n--${boundary}--\r\n`,
+    "utf8",
+  );
+  const upload = await app.inject({
+    method: "POST",
+    url: "/admin/frameworks/upload",
+    headers: { cookie: String(cookie), "content-type": `multipart/form-data; boundary=${boundary}` },
+    payload: uploadBody,
+  });
+  assert.equal(upload.statusCode, 302, upload.body);
+  const uploaded = await db.query("SELECT id FROM framework_versions WHERE framework_id = 'uploaded'");
+  assert.equal(uploaded.rows.length, 1);
+  const publish = await app.inject({
+    method: "POST",
+    url: `/admin/frameworks/${uploaded.rows[0].id}/publish`,
+    headers: { cookie: String(cookie) },
+  });
+  assert.equal(publish.statusCode, 302, publish.body);
+
   const redeem = await app.inject({
     method: "POST",
     url: "/api/auth/redeem-invite",
@@ -107,7 +138,7 @@ version: "1"
     headers: { authorization: `Bearer ${token}` },
   });
   assert.equal(frameworks.statusCode, 200);
-  assert.equal(frameworks.json<{ frameworks: unknown[] }>().frameworks.length, 1);
+  assert.equal(frameworks.json<{ frameworks: unknown[] }>().frameworks.length, 2);
 
   await app.close();
   await db.end();
