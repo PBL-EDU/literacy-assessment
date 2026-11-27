@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.1 — 2026-11-27
+
+社区反馈修复：精简 release 资产、增加 GitHub Artifact Attestations、补充数据范围说明。
+
 ## 0.5.0 — 2026-11-27
 
 ### 组织版 MVP
