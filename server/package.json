@@ -10,7 +10,7 @@
     "start": "node dist/server.js",
     "migrate": "tsx src/cli/migrate.ts",
     "bootstrap": "tsx src/cli/bootstrap.ts",
-    "test": "node --import tsx --test test/security.test.ts test/framework.test.ts test/migrations.test.ts"
+    "test": "node --import tsx --test test/security.test.ts test/framework.test.ts test/migrations.test.ts test/app.test.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
