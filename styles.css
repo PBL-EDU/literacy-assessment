@@ -462,3 +462,10 @@
 .la-review-card { padding: 10px; margin: 8px 0; border: 1px solid var(--background-modifier-border); border-radius: 6px; }
 .la-review-row { padding: 8px 0; border-bottom: 1px solid var(--background-modifier-border); }
 .la-final-level { margin-top: 4px; }
+/* v0.5 target tree / organization */
+.la-target-picker { max-height: 340px; overflow: auto; }
+.la-target-framework, .la-target-branch { margin: 4px 0; }
+.la-target-framework > summary, .la-target-branch > summary { cursor: pointer; font-size: 12px; font-weight: 600; padding: 3px 0; }
+.la-target-choice { display: flex; gap: 6px; align-items: center; padding: 2px 0 2px 6px; font-size: 12px; cursor: pointer; }
+.la-target-choice input { margin: 0; }
+.la-target-path { color: var(--text-faint); font-size: 10px; margin-left: auto; }
