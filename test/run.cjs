@@ -538,6 +538,26 @@ test("renderActivityReport 写入审核状态与框架", () => {
   ok(md.includes("framework_versions:"), "缺框架版本");
 });
 
+test("normalizeActivityMeta 读取结构化目标", () => {
+  const meta = core.normalizeActivityMeta({
+    title: "目标测试",
+    participants: ["张三"],
+    targets: [{ frameworkId: "f1", frameworkName: "框架", frameworkVersion: "1", goalId: "g1", path: "一级/二级", title: "目标" }],
+  }, "a");
+  expect(meta.targets.length, 1);
+  expect(meta.targets[0].goalId, "g1");
+  expect(meta.targets[0].path, "一级/二级");
+});
+
+test("renderActivityReport 写入结构化目标", () => {
+  const meta = core.normalizeActivityMeta({ title: "目标测试", participants: ["张三"] }, "a");
+  const a = core.normalizeActivityAssessment({ overview: "ok", students: [] }, meta, "test-model");
+  a.targets = [{ frameworkId: "f1", frameworkName: "框架", frameworkVersion: "1", goalId: "g1", path: "一级/二级", title: "目标" }];
+  const md = report.renderActivityReport(a);
+  ok(md.includes("targets:"), "缺 targets");
+  ok(md.includes("path: \"一级/二级\""), "缺目标路径");
+});
+
 /* ---------------- DeepSeek 官方接口 ---------------- */
 
 test("ocrEndpoint 支持 /tools/ocr 拼接", () => {

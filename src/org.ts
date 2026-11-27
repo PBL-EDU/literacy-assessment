@@ -106,6 +106,7 @@ export async function initOrgSession(settings: AssessmentSettings): Promise<void
   try {
     const bundle = await refresh(settings);
     setActive(bundle, settings);
+    await saveSettings?.();
   } catch (error) {
     // 网络不可用时保留组织身份，避免静默切到个人 Key。
     state.status = "offline";
