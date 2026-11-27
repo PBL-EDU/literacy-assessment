@@ -108,7 +108,7 @@ function renderTargetTree(
         if (level === 0) {
           // 一级素养：下拉菜单（可展开/收起）
           const details = parent.createEl("details", { cls: "la-target-branch" });
-          details.open = true;
+          details.open = false;
           details.createEl("summary", { text: child.name });
           renderNode(child, details, level + 1);
         } else {
