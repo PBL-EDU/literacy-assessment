@@ -1,11 +1,10 @@
 {
   "id": "literacy-assessment",
   "name": "Literacy Teacher Workbench",
-  "version": "0.5.6",
-  "minAppVersion": "1.6.0",
+  "version": "0.5.7",
+  "minAppVersion": "1.13.0",
   "description": "Local-first literacy assessment workbench with DeepSeek official OCR, vision and short ASR; generate evidence-linked reports and redacted public versions.",
   "author": "denghao",
   "authorUrl": "https://github.com/PBL-EDU",
   "isDesktopOnly": true
 }
-
