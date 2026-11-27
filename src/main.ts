@@ -321,6 +321,7 @@ export default class LiteracyAssessmentPlugin extends Plugin {
     ]);
     return {
       series,
+      seriesGoals: Object.fromEntries(seriesRecords.map((item) => [item.meta.title, item.meta.goals])),
       groups: groupRecords.map((item) => ({ name: item.meta.name, members: item.meta.members })),
       students,
       goals,

@@ -17,6 +17,7 @@ import { parseGoals, parseParticipants, todayISO } from "./core";
 
 export interface ActivityFormOptions {
   series: Array<{ name: string; count: number }>;
+  seriesGoals: Record<string, string[]>;
   groups: Array<{ name: string; members: string[] }>;
   students: string[];
   goals: string[];
@@ -346,9 +347,10 @@ export class NewActivityModal extends Modal {
       return;
     }
     const targetLabels = [...this.selectedTargets.values()].map((target) => `${target.path}（${target.goalId}）`);
-    const goals = Array.from(new Set([...this.selectedGoals, ...parseGoals(this.newGoals), ...targetLabels]));
+    const inheritedGoals = this.input.series === "暂不归属" ? [] : this.options.seriesGoals[this.input.series] ?? [];
+    const goals = Array.from(new Set([...this.selectedGoals, ...parseGoals(this.newGoals), ...inheritedGoals, ...targetLabels]));
     if (!goals.length) {
-      new Notice("至少选/写一条教学目标。");
+      new Notice("至少选/写一条教学目标，或选择一个已有项目以继承项目目标。");
       return;
     }
     this.input.targets = [...this.selectedTargets.values()];

@@ -65,7 +65,7 @@ function settingsPage(username: string, budget: number, fingerprint: string, err
     "设置",
     `<div class="card">
       <h1>组织设置</h1>
-      <p><a href="/admin">返回总览</a></p>
+      <p><a href="/admin">返回总览</a> · <a href="/admin/prices">模型价格</a></p>
       ${error ? `<p class="error">${escapeHtml(error)}</p>` : ""}
       <p class="muted">组织 DeepSeek Key 只保存在服务端，使用 MASTER_KEY 加密；不会下发给插件。</p>
       <p>当前 Key：${fingerprint ? `已配置（指纹 ${escapeHtml(fingerprint)}）` : "未配置"}</p>

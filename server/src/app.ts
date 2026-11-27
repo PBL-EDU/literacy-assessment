@@ -10,6 +10,7 @@ import { registerAuthRoutes } from "./routes/auth.js";
 import { registerFrameworkRoutes } from "./routes/frameworks.js";
 import { registerGatewayRoutes } from "./routes/gateway.js";
 import { registerSettingsRoutes } from "./routes/settings.js";
+import { registerPriceRoutes } from "./routes/prices.js";
 
 export interface BuildOptions {
   config: AppConfig;
@@ -58,6 +59,7 @@ export async function buildApp({ config, db }: BuildOptions): Promise<FastifyIns
   await registerFrameworkRoutes(app, db, config);
   await registerGatewayRoutes(app, db, config);
   await registerSettingsRoutes(app, db, config);
+  await registerPriceRoutes(app, db, config);
 
   app.setErrorHandler((error: FastifyError, request, reply) => {
     const statusCode = typeof error.statusCode === "number" ? error.statusCode : 500;

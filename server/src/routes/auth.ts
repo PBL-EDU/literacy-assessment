@@ -137,7 +137,7 @@ export async function registerAuthRoutes(app: FastifyInstance, db: Db, config: A
             <tr><td>${members.rows[0]?.count ?? 0}</td><td>${invites.rows[0]?.count ?? 0}</td><td>${frameworks.rows[0]?.count ?? 0}</td><td>¥${usage.rows[0]?.cost ?? "0"}</td></tr>
           </table>
         </div>
-        <div class="card"><h2>快捷入口</h2><p><a href="/admin/invites">邀请教师</a> · <a href="/admin/members">成员</a> · <a href="/admin/frameworks">框架</a> · <a href="/admin/settings">组织设置</a> · <a href="/admin/logout">退出登录</a></p></div>`,
+        <div class="card"><h2>快捷入口</h2><p><a href="/admin/invites">邀请教师</a> · <a href="/admin/members">成员</a> · <a href="/admin/frameworks">框架</a> · <a href="/admin/settings">组织设置</a> · <a href="/admin/prices">模型价格</a> · <a href="/admin/logout">退出登录</a></p></div>`,
         admin.username,
       ),
     );
