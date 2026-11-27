@@ -111,7 +111,7 @@ docker compose -f server/compose.yml up -d --build
 
 `compose.yml` 中的数据库只在 `literacy-net` 内可见；API 只绑定 `127.0.0.1:3010`，由宿主机 nginx 反代。
 
-nginx vhost 示例：
+nginx vhost 已放在 `server/deploy/nginx-plan.conf`：
 
 ```nginx
 server {
@@ -138,6 +138,14 @@ server {
 
 ```bash
 certbot --nginx -d plan.dreamook.com
+```
+
+备份脚本：
+
+```bash
+chmod +x server/deploy/backup.sh
+# 加入 cron，例如每天 03:30
+30 3 * * * /opt/literacy/server/deploy/backup.sh
 ```
 
 ## 备份
