@@ -74,9 +74,9 @@ PBL-EDU/literacy-assessment
 ## Documentation
 
 - [Chinese user guide](docs/使用指南.md)
-- [v0.5.3 operation manual (PDF)](docs/素养教师工作台-操作手册-v0.5.3.pdf)
+- [v0.5.4 operation manual (PDF)](docs/素养教师工作台-操作手册-v0.5.4.pdf)
 - [Architecture notes](docs/架构说明.md)
-- [Release notes v0.5.3](docs/release-notes-v0.5.3.md)
+- [Release notes v0.5.4](docs/release-notes-v0.5.4.md)
 
 
 ## Organization server source
@@ -109,4 +109,4 @@ Released under the **GNU Affero General Public License v3.0 (AGPL-3.0-only)**. Y
 
 **素养教师工作台**是一个本地优先的 Obsidian 插件，面向项目式学习中的素养评估。老师按「项目 → 行动」收集课堂素材，插件调用老师自己配置的 AI 服务完成转写、OCR、图像说明、证据抽取和报告草稿；素材和报告都保存在本地库。
 
-v0.5.0 支持组织模式、多素养框架、行为量表、学生独立素养档案、`生成报告 → 审核报告`、本地导师审核、教学反馈独立文件，以及批准后才开放 PDF/对外版。中文详细用法见[使用指南](docs/使用指南.md)和[v0.5.0 操作手册](docs/素养教师工作台-操作手册-v0.5.3.pdf)。
+v0.5.0 支持组织模式、多素养框架、行为量表、学生独立素养档案、`生成报告 → 审核报告`、本地导师审核、教学反馈独立文件，以及批准后才开放 PDF/对外版。中文详细用法见[使用指南](docs/使用指南.md)和[v0.5.0 操作手册](docs/素养教师工作台-操作手册-v0.5.4.pdf)。

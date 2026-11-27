@@ -1,7 +1,7 @@
 /**
  * 设置页。
  */
-import { App, Notice, PluginSettingTab, Setting } from "obsidian";
+import { App, Notice, PluginSettingTab, Setting, type SettingDefinitionItem } from "obsidian";
 import type LiteracyAssessmentPlugin from "./main";
 import { DEFAULT_SETTINGS } from "./types";
 import { resolveFrameworkPath } from "./core";
@@ -15,9 +15,26 @@ export class LiteracySettingTab extends PluginSettingTab {
     this.plugin = plugin;
   }
 
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    return [
+      {
+        name: "素养评估设置",
+        desc: "数据位置、框架、组织模式与 AI 服务",
+        aliases: ["数据目录", "框架", "组织", "API Key", "OCR", "ASR", "模型", "DeepSeek"],
+        render: (_setting, group) => {
+          group.listEl.empty();
+          this.renderSettings(group.listEl);
+        },
+      },
+    ];
+  }
+
   display(): void {
-    const { containerEl } = this;
-    containerEl.empty();
+    this.containerEl.empty();
+    this.renderSettings(this.containerEl);
+  }
+
+  private renderSettings(containerEl: HTMLElement): void {
     const settings = this.plugin.settings;
 
     new Setting(containerEl).setName("素养评估").setHeading();
@@ -657,7 +674,7 @@ export class LiteracySettingTab extends PluginSettingTab {
     new Setting(containerEl).setName("关于").setHeading();
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "素养评估 v0.5.3 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
+      text: "素养评估 v0.5.4 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
     });
     containerEl.createEl("p", {
       cls: "setting-item-description",
