@@ -203,7 +203,7 @@ export const DEFAULT_SETTINGS: AssessmentSettings = {
   confirmBeforeUpload: true,
   autoOpenReport: true,
 
-  orgServerUrl: "https://plan.dreamook.com",
+  orgServerUrl: "https://action.dreamook.com",
   orgRefreshToken: "",
   orgName: "",
   orgMemberName: "",

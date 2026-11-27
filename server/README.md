@@ -54,7 +54,7 @@ curl http://127.0.0.1:3010/health
 ## 管理后台
 
 ```text
-https://plan.dreamook.com/admin/login
+https://action.dreamook.com/admin/login
 ```
 
 - 管理员账号密码；
@@ -111,15 +111,15 @@ docker compose -f server/compose.yml up -d --build
 
 `compose.yml` 中的数据库只在 `literacy-net` 内可见；API 只绑定 `127.0.0.1:3010`，由宿主机 nginx 反代。
 
-nginx vhost 已放在 `server/deploy/nginx-plan.conf`：
+nginx vhost 已放在 `server/deploy/nginx-action.conf`：
 
 ```nginx
 server {
     listen 443 ssl http2;
-    server_name plan.dreamook.com;
+    server_name action.dreamook.com;
 
-    ssl_certificate /etc/letsencrypt/live/plan.dreamook.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/plan.dreamook.com/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/action.dreamook.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/action.dreamook.com/privkey.pem;
 
     client_max_body_size 110m;
 
@@ -137,7 +137,7 @@ server {
 证书：
 
 ```bash
-certbot --nginx -d plan.dreamook.com
+certbot --nginx -d action.dreamook.com
 ```
 
 备份脚本：

@@ -122,7 +122,7 @@ export class LiteracySettingTab extends PluginSettingTab {
 
       new Setting(containerEl)
         .setName("组织服务器")
-        .setDesc("默认 https://plan.dreamook.com；加入组织后 AI 调用走组织网关")
+        .setDesc("默认 https://action.dreamook.com；加入组织后 AI 调用走组织网关")
         .addText((text) =>
           text.setValue(settings.orgServerUrl).onChange(async (value) => {
             serverUrl = value.trim();

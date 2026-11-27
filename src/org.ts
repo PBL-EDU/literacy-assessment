@@ -48,7 +48,7 @@ let currentSettings: AssessmentSettings | null = null;
 let saveSettings: (() => Promise<void>) | null = null;
 
 function baseUrl(settings: AssessmentSettings): string {
-  return (settings.orgServerUrl || "https://plan.dreamook.com").replace(/\/+$/, "");
+  return (settings.orgServerUrl || "https://action.dreamook.com").replace(/\/+$/, "");
 }
 
 export function configureOrgClient(
