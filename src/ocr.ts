@@ -105,6 +105,23 @@ export async function ocrFile(
   }
   const buffer = Buffer.isBuffer(fileBuffer) ? fileBuffer : Buffer.from(fileBuffer as ArrayBuffer);
   if (!buffer.length) throw new OcrError("文件是空的。");
+  let org: typeof import("./org") | null = null;
+  try {
+    org = await import("./org");
+  } catch {
+    org = null;
+  }
+  if (org?.orgActive()) {
+    try {
+      const raw = await org.orgOcr(buffer, fileName, settings.ocrPurpose);
+      return parseOcrResponse(raw, settings.ocrPurpose);
+    } catch (error) {
+      throw new OcrError(`组织 OCR 网关失败：${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  if (org?.orgRequiresGateway()) {
+    throw new OcrError("组织会话不可用；为避免误用个人 Key，请先重试组织连接或退出组织。");
+  }
   if (buffer.length > MAX_OCR_BYTES) {
     throw new OcrError(`文件超过 100 MB，DeepSeek OCR 无法处理；请先压缩或拆分。`);
   }

@@ -99,6 +99,87 @@ export class LiteracySettingTab extends PluginSettingTab {
         }),
       );
 
+    /* ---------------- 组织版 ---------------- */
+    new Setting(containerEl).setName("组织版（v0.5）").setHeading();
+    {
+      const org = this.plugin.organizationStatus();
+      const labels: Record<string, string> = {
+        none: "未加入组织：使用个人 DeepSeek API",
+        active: `已加入：${settings.orgName} · ${settings.orgMemberName}`,
+        offline: "组织服务暂时不可用；不会自动改用个人 API",
+        invalid: "组织会话已失效，请重新加入",
+      };
+      containerEl.createEl("p", {
+        cls: "setting-item-description",
+        text: labels[org.status] ?? "未加入组织",
+      });
+      if (org.error) containerEl.createEl("p", { cls: "setting-item-description", text: `状态：${org.error}` });
+
+      let serverUrl = settings.orgServerUrl;
+      let inviteCode = "";
+      let displayName = settings.orgMemberName;
+      let deviceName = "Obsidian";
+
+      new Setting(containerEl)
+        .setName("组织服务器")
+        .setDesc("默认 https://plan.dreamook.com；加入组织后 AI 调用走组织网关")
+        .addText((text) =>
+          text.setValue(settings.orgServerUrl).onChange(async (value) => {
+            serverUrl = value.trim();
+            settings.orgServerUrl = serverUrl;
+            await this.plugin.saveSettings();
+          }),
+        );
+
+      if (!settings.orgRefreshToken) {
+        new Setting(containerEl)
+          .setName("邀请码")
+          .setDesc("管理员在组织后台生成的一次性邀请码")
+          .addText((text) => text.setPlaceholder("例如 AB12CD34").onChange((value) => { inviteCode = value.trim(); }));
+        new Setting(containerEl)
+          .setName("你的名字")
+          .setDesc("用于组织成员显示")
+          .addText((text) => text.setValue(displayName).onChange((value) => { displayName = value.trim(); }));
+        new Setting(containerEl)
+          .setName("设备名")
+          .addText((text) => text.setValue(deviceName).onChange((value) => { deviceName = value.trim() || "Obsidian"; }));
+        new Setting(containerEl).addButton((button) =>
+          button.setButtonText("加入组织").setCta().onClick(async () => {
+            if (!inviteCode || !displayName) {
+              new Notice("请填写邀请码和你的名字。");
+              return;
+            }
+            button.setDisabled(true);
+            try {
+              await this.plugin.joinOrganization({ serverUrl, code: inviteCode, displayName, deviceName });
+              new Notice("已加入组织，AI 调用将由组织统一结算。");
+              this.display();
+            } catch (error) {
+              new Notice(error instanceof Error ? error.message : String(error), 9000);
+            } finally {
+              button.setDisabled(false);
+            }
+          }),
+        );
+      } else {
+        new Setting(containerEl)
+          .setName("组织连接")
+          .setDesc("可重新验证设备令牌；退出后回到个人 API")
+          .addButton((button) => button.setButtonText("重新连接").onClick(async () => {
+            try {
+              await this.plugin.reconnectOrganization();
+              this.display();
+            } catch (error) {
+              new Notice(error instanceof Error ? error.message : String(error), 9000);
+            }
+          }))
+          .addButton((button) => button.setButtonText("退出组织").onClick(async () => {
+            await this.plugin.leaveOrganization();
+            this.display();
+          }));
+      }
+    }
+
     /* ---------------- AI 服务 ---------------- */
     new Setting(containerEl).setName("AI 服务（DeepSeek 官方优先）").setHeading();
     containerEl.createEl("p", {

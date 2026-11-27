@@ -13,8 +13,10 @@ import type {
   FrameworkLevel,
   FrameworkRef,
   SeriesRecord,
+  TargetRef,
 } from "./types";
 import { splitFrontmatter, stemOf } from "./core";
+import { orgActive, orgFrameworks } from "./org";
 
 export const FRAMEWORK_FOLDER = "00_框架";
 
@@ -60,10 +62,11 @@ function parseTable(lines: string[]): { levels: FrameworkLevel[]; goals: Framewo
   if (!header || headerIndex < 0) {
     return { levels: [], goals: [], errors: ["没有找到目标×level 的 Markdown 表格"] };
   }
+  const pathIndex = header.findIndex((h) => /路径|path/i.test(h));
   const idIndex = header.findIndex((h) => /目标ID|目标id|goal\s*id/i.test(h));
-  const titleIndex = header.findIndex((h) => /目标|goal/i.test(h) && !/ID/i.test(h));
+  const titleIndex = header.findIndex((h) => /目标|goal/i.test(h) && !/ID/i.test(h) && !/路径|path/i.test(h));
   const dimIndex = header.findIndex((h) => /维度|dimension/i.test(h));
-  const fixed = new Set([idIndex, titleIndex, dimIndex].filter((i) => i >= 0));
+  const fixed = new Set([pathIndex, idIndex, titleIndex, dimIndex].filter((i) => i >= 0));
   const levelIndexes: Array<{ index: number; key: string }> = [];
   header.forEach((cell, index) => {
     if (!fixed.has(index) && cell.trim()) levelIndexes.push({ index, key: cell.trim() });
@@ -86,10 +89,13 @@ function parseTable(lines: string[]): { levels: FrameworkLevel[]; goals: Framewo
     if (!id || !title) continue;
     const levelMap: Record<string, string> = {};
     for (const item of levelIndexes) levelMap[item.key] = cells[item.index] ?? "";
+    const path = pathIndex >= 0 ? cells[pathIndex] ?? "" : title;
     goals.push({
       id,
       title,
       dimension: dimIndex >= 0 ? cells[dimIndex] ?? "" : "",
+      path,
+      pathSegments: path.split("/").map((segment) => segment.trim()).filter(Boolean),
       levels: levelMap,
     });
   }
@@ -146,6 +152,24 @@ export async function loadFramework(app: App, path: string): Promise<FrameworkDe
 }
 
 export async function listFrameworks(app: App, settings: AssessmentSettings): Promise<FrameworkDefinition[]> {
+  if (orgActive()) {
+    try {
+      const remote = await orgFrameworks();
+      return remote.map((item) => {
+        const parsed = parseFrameworkText(`org://${item.frameworkId}`, item.markdown);
+        return {
+          ...parsed,
+          id: item.frameworkId || parsed.id,
+          name: item.name || parsed.name,
+          version: item.version || parsed.version,
+          hash: item.hash || parsed.hash,
+          status: "active",
+        };
+      });
+    } catch {
+      // 组织网关暂时不可用时使用本地缓存/文件，避免整个侧栏无法工作。
+    }
+  }
   const out: FrameworkDefinition[] = [];
   for (const path of frameworkFiles(app, settings)) {
     const framework = await loadFramework(app, path);
@@ -205,14 +229,19 @@ export async function buildFrameworkContext(
   app: App,
   settings: AssessmentSettings,
   refs: FrameworkRef[],
+  targets?: TargetRef[],
 ): Promise<FrameworkContext> {
   const definitions: FrameworkDefinition[] = [];
   for (const ref of refs) {
     const framework = await findFramework(app, settings, ref.id);
     if (framework) definitions.push(framework);
   }
+  const selectedGoalIds = new Set((targets ?? []).map((target) => `${target.frameworkId}::${target.goalId}`));
   const text = definitions
-    .map((f) => `# ${f.name}（${f.id} / v${f.version}）\n\n${f.goals.map((g) => `- ${g.id} ${g.title}：${Object.entries(g.levels).map(([k, v]) => `${k}=${v}`).join("；")}`).join("\n")}`)
+    .map((f) => {
+      const goals = f.goals.filter((g) => !selectedGoalIds.size || selectedGoalIds.has(`${f.id}::${g.id}`));
+      return `# ${f.name}（${f.id} / v${f.version}）\n\n${goals.map((g) => `- ${g.path || g.title}（${g.id}）：${Object.entries(g.levels).map(([k, v]) => `${k}=${v}`).join("；")}`).join("\n")}`;
+    })
     .join("\n\n---\n\n");
   return {
     text,

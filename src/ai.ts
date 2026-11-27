@@ -5,6 +5,7 @@
 import { requestUrl } from "obsidian";
 import type { AssessmentSettings, ChatMessage } from "./types";
 import { extractJson } from "./core";
+import { orgActive, orgChat, orgRequiresGateway } from "./org";
 
 export class AiError extends Error {
   status?: number;
@@ -89,6 +90,16 @@ export async function chat(
   messages: ChatMessageLike[],
   options: ChatOptions = {},
 ): Promise<string> {
+  if (orgActive()) {
+    try {
+      return await orgChat(messages as ChatMessage[], options);
+    } catch (error) {
+      throw new AiError(`组织 AI 网关失败：${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  if (orgRequiresGateway()) {
+    throw new AiError("组织会话不可用；为避免误用个人 Key，请先重试组织连接或到设置中退出组织。");
+  }
   if (!settings.aiApiKey) {
     throw new AiError("还没有配置 AI API Key：设置 → 素养评估 → AI 服务");
   }

@@ -23,7 +23,18 @@ export interface FrameworkGoal {
   id: string;
   title: string;
   dimension: string;
+  path?: string;
+  pathSegments?: string[];
   levels: Record<string, string>;
+}
+
+export interface TargetRef {
+  frameworkId: string;
+  frameworkName: string;
+  frameworkVersion: string;
+  goalId: string;
+  path: string;
+  title: string;
 }
 
 export interface FrameworkDefinition {
@@ -145,6 +156,12 @@ export interface AssessmentSettings {
   maxContextChars: number;
   confirmBeforeUpload: boolean;
   autoOpenReport: boolean;
+
+  /** 组织版 v0.5：服务端与设备会话 */
+  orgServerUrl: string;
+  orgRefreshToken: string;
+  orgName: string;
+  orgMemberName: string;
 }
 
 export const DEFAULT_SETTINGS: AssessmentSettings = {
@@ -185,6 +202,11 @@ export const DEFAULT_SETTINGS: AssessmentSettings = {
   maxContextChars: 60_000,
   confirmBeforeUpload: true,
   autoOpenReport: true,
+
+  orgServerUrl: "https://plan.dreamook.com",
+  orgRefreshToken: "",
+  orgName: "",
+  orgMemberName: "",
 };
 
 export const FOLDERS = {
@@ -229,6 +251,7 @@ export interface ActivityMeta {
   goals: string[];
   framework: string;
   framework_refs?: FrameworkRef[];
+  targets?: TargetRef[];
   status: string;
   /** 所属系列/项目/课程名称 */
   series: string;
@@ -248,6 +271,7 @@ export interface SeriesMeta {
   description: string;
   goals: string[];
   framework_refs?: FrameworkRef[];
+  targets?: TargetRef[];
   created_at: string;
   status: string;
 }
@@ -266,6 +290,7 @@ export interface NewSeriesInput {
   description: string;
   goalsText: string;
   framework_refs?: FrameworkRef[];
+  targets?: TargetRef[];
 }
 
 export interface GroupMeta {
@@ -314,6 +339,7 @@ export interface NewActivityInput {
   sequence: string;
   groups: string[];
   framework_refs?: FrameworkRef[];
+  targets?: TargetRef[];
 }
 
 export interface ArtifactInfo {
@@ -393,6 +419,7 @@ export interface ActivityAssessment {
   level_proposals?: LevelProposal[];
   teaching_feedback?: TeachingFeedback;
   framework_refs?: FrameworkRef[];
+  targets?: TargetRef[];
   framework_versions?: string[];
   framework_hashes?: string[];
   disclaimer: string;

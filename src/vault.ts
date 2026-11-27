@@ -329,6 +329,7 @@ export async function createSeries(
     description: input.description.trim(),
     goals: parseGoals(input.goalsText),
     framework_refs: input.framework_refs ?? [],
+    targets: input.targets ?? [],
     created_at: nowISO(),
     status: "进行中",
   };
@@ -477,6 +478,16 @@ function renderSeriesNote(meta: SeriesMeta): string {
     lines.push(`    role: ${yamlValue(ref.role)}`);
   }
   if (!(meta.framework_refs ?? []).length) lines.push("  []");
+  lines.push("targets:");
+  for (const target of meta.targets ?? []) {
+    lines.push(`  - frameworkId: ${yamlValue(target.frameworkId)}`);
+    lines.push(`    frameworkName: ${yamlValue(target.frameworkName)}`);
+    lines.push(`    frameworkVersion: ${yamlValue(target.frameworkVersion)}`);
+    lines.push(`    goalId: ${yamlValue(target.goalId)}`);
+    lines.push(`    path: ${yamlValue(target.path)}`);
+    lines.push(`    title: ${yamlValue(target.title)}`);
+  }
+  if (!(meta.targets ?? []).length) lines.push("  []");
   lines.push("---");
   lines.push("");
   lines.push(`# ${meta.title}`);
@@ -639,6 +650,16 @@ function renderActivityNote(meta: ActivityMeta): string {
     lines.push(`    role: ${yamlValue(ref.role)}`);
   }
   if (!(meta.framework_refs ?? []).length) lines.push("  []");
+  lines.push("targets:");
+  for (const target of meta.targets ?? []) {
+    lines.push(`  - frameworkId: ${yamlValue(target.frameworkId)}`);
+    lines.push(`    frameworkName: ${yamlValue(target.frameworkName)}`);
+    lines.push(`    frameworkVersion: ${yamlValue(target.frameworkVersion)}`);
+    lines.push(`    goalId: ${yamlValue(target.goalId)}`);
+    lines.push(`    path: ${yamlValue(target.path)}`);
+    lines.push(`    title: ${yamlValue(target.title)}`);
+  }
+  if (!(meta.targets ?? []).length) lines.push("  []");
   lines.push(`status: ${yamlValue(meta.status)}`);
   lines.push("---");
   lines.push("");
@@ -721,11 +742,24 @@ export async function createActivity(
     participants,
     goals,
     framework: seriesRecord?.meta.framework_refs?.[0]?.id || resolveFrameworkPath(settings),
-    framework_refs:
-      seriesRecord?.meta.framework_refs?.length
-        ? seriesRecord.meta.framework_refs
+    framework_refs: (() => {
+      const refs = seriesRecord?.meta.framework_refs?.length
+        ? [...seriesRecord.meta.framework_refs]
         : input.framework_refs?.length
-          ? input.framework_refs
+          ? [...input.framework_refs]
+          : [];
+      for (const target of input.targets ?? []) {
+        if (!refs.some((ref) => ref.id === target.frameworkId)) {
+          refs.push({ id: target.frameworkId, role: "supplementary" });
+        }
+      }
+      return refs;
+    })(),
+    targets:
+      input.targets?.length
+        ? input.targets
+        : seriesRecord?.meta.targets?.length
+          ? seriesRecord.meta.targets
           : [],
     status: "收集中",
     series: seriesRecord?.meta.title ?? "",

@@ -1,0 +1,32 @@
+{
+  "name": "literacy-assessment-server",
+  "version": "0.5.0",
+  "private": true,
+  "type": "module",
+  "description": "Organization MVP server for Literacy Teacher Workbench",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "migrate": "tsx src/cli/migrate.ts",
+    "bootstrap": "tsx src/cli/bootstrap.ts",
+    "test": "node --import tsx --test test/security.test.ts test/framework.test.ts test/migrations.test.ts"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/formbody": "^8.0.2",
+    "@fastify/helmet": "^13.0.2",
+    "@fastify/multipart": "^9.0.3",
+    "@fastify/rate-limit": "^10.2.2",
+    "fastify": "^5.6.1",
+    "pg": "^8.16.3",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.3.0",
+    "@types/node": "^22.18.12",
+    "@types/pg": "^8.15.5",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

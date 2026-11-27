@@ -20,6 +20,7 @@ import type {
   SeriesMeta,
   StageAssessment,
   StudentAssessment,
+  TargetRef,
   TeachingFeedback,
 } from "./types";
 import { ACTIVITY_NOTE, ACTIONS_SUBFOLDER, FOLDERS, SUBFOLDERS } from "./types";
@@ -491,6 +492,28 @@ export function normalizeFrameworkRefs(value: unknown): FrameworkRef[] {
   return refs;
 }
 
+export function normalizeTargets(value: unknown): TargetRef[] {
+  if (!Array.isArray(value)) return [];
+  const out: TargetRef[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+    const r = item as Record<string, unknown>;
+    const frameworkId = asString(r.frameworkId ?? r.framework_id);
+    const goalId = asString(r.goalId ?? r.goal_id);
+    const path = asString(r.path);
+    if (!frameworkId || !goalId || !path) continue;
+    out.push({
+      frameworkId,
+      frameworkName: asString(r.frameworkName ?? r.framework_name),
+      frameworkVersion: asString(r.frameworkVersion ?? r.framework_version),
+      goalId,
+      path,
+      title: asString(r.title),
+    });
+  }
+  return out;
+}
+
 export function normalizeActivityMeta(raw: Record<string, unknown>, folder: string): ActivityMeta {
   const title = asString(raw.title) || folder.split(/[\\/]/).pop()?.replace(/^\d{4}-\d{2}-\d{2}_/, "") || "未命名行动";
   const type = normalizeActivityType(asString(raw.type, "行动"));
@@ -509,6 +532,7 @@ export function normalizeActivityMeta(raw: Record<string, unknown>, folder: stri
     goals: asStringArray(raw.goals),
     framework: asString(raw.framework),
     framework_refs: normalizeFrameworkRefs(raw.framework_refs),
+    targets: normalizeTargets(raw.targets),
     status: asString(raw.status, "收集中"),
     series,
     series_id: asString(raw.series_id) || seriesIdFor(series),
@@ -530,6 +554,7 @@ export function normalizeSeriesMeta(raw: Record<string, unknown>, folder: string
     description: asString(raw.description),
     goals: asStringArray(raw.goals),
     framework_refs: normalizeFrameworkRefs(raw.framework_refs),
+    targets: normalizeTargets(raw.targets),
     created_at: asString(raw.created_at, nowISO()),
     status: asString(raw.status, "进行中"),
   };

@@ -53,6 +53,7 @@ import { canOcrFile } from "./ocr";
 import { listFrameworks } from "./framework";
 import { ensureLiteracyProfile } from "./profile";
 import { installBundleFromVault } from "./frameworkBundle";
+import { configureOrgClient, initOrgSession, joinOrganization, leaveOrganization, orgStatus, refreshOrgSession } from "./org";
 import { approveReport, isApproved, readReview, requestChanges } from "./review";
 import { PendingReviewsModal, ReviewModal, type PendingReviewItem } from "./reviewModal";
 import { writeExternalReport } from "./external";
@@ -67,6 +68,8 @@ export default class LiteracyAssessmentPlugin extends Plugin {
 
   async onload(): Promise<void> {
     await this.loadSettings();
+    configureOrgClient(this.settings, () => this.saveSettings());
+    void initOrgSession(this.settings).then(() => this.refreshViews());
     this.addSettingTab(new LiteracySettingTab(this.app, this));
     this.registerView(LITERACY_VIEW_TYPE, (leaf) => new LiteracyView(leaf, this));
 
@@ -428,6 +431,28 @@ export default class LiteracyAssessmentPlugin extends Plugin {
     }
     new Notice(`已同步 ${students.length} 位同学的素养档案。`);
     this.refreshViews();
+  }
+
+  async joinOrganization(input: { serverUrl: string; code: string; displayName: string; deviceName: string }): Promise<void> {
+    await joinOrganization(this.settings, input);
+    new Notice(`已加入组织：${this.settings.orgName}`);
+    this.refreshViews();
+  }
+
+  async leaveOrganization(): Promise<void> {
+    await leaveOrganization();
+    new Notice("已退出组织；AI 调用将使用个人 Key。");
+    this.refreshViews();
+  }
+
+  async reconnectOrganization(): Promise<void> {
+    await refreshOrgSession();
+    new Notice(`组织连接正常：${this.settings.orgName}`);
+    this.refreshViews();
+  }
+
+  organizationStatus(): ReturnType<typeof orgStatus> {
+    return orgStatus();
   }
 
   async importFrameworkBundle(path: string): Promise<string> {

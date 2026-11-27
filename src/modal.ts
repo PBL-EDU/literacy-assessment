@@ -5,7 +5,9 @@ import { App, Modal, Notice, Setting } from "obsidian";
 import type {
   ActivityType,
   FrameworkDefinition,
+  FrameworkGoal,
   FrameworkRef,
+  TargetRef,
   NewActivityInput,
   NewGroupInput,
   NewSeriesInput,
@@ -20,6 +22,96 @@ export interface ActivityFormOptions {
   goals: string[];
   frameworks: FrameworkDefinition[];
   defaultFrameworkRefs: FrameworkRef[];
+  defaultTargets?: TargetRef[];
+}
+
+interface TargetTreeNode {
+  name: string;
+  children: Map<string, TargetTreeNode>;
+  goals: FrameworkGoal[];
+}
+
+function targetKey(frameworkId: string, goalId: string): string {
+  return `${frameworkId}::${goalId}`;
+}
+
+function targetRefFor(framework: FrameworkDefinition, goal: FrameworkGoal): TargetRef {
+  const path = goal.path?.trim() || goal.title;
+  return {
+    frameworkId: framework.id,
+    frameworkName: framework.name,
+    frameworkVersion: framework.version,
+    goalId: goal.id,
+    path,
+    title: goal.title,
+  };
+}
+
+function buildTargetTree(framework: FrameworkDefinition): TargetTreeNode {
+  const root: TargetTreeNode = { name: framework.name, children: new Map(), goals: [] };
+  for (const goal of framework.goals) {
+    const segments = goal.pathSegments?.length
+      ? goal.pathSegments
+      : (goal.path || goal.title).split("/").map((segment) => segment.trim()).filter(Boolean);
+    let node = root;
+    for (const segment of segments) {
+      if (!node.children.has(segment)) {
+        node.children.set(segment, { name: segment, children: new Map(), goals: [] });
+      }
+      node = node.children.get(segment)!;
+    }
+    node.goals.push(goal);
+  }
+  return root;
+}
+
+function renderTargetTree(
+  container: HTMLElement,
+  frameworks: FrameworkDefinition[],
+  selected: Map<string, TargetRef>,
+): void {
+  if (!frameworks.length) {
+    container.createEl("p", {
+      cls: "setting-item-description",
+      text: "还没有可用框架；加入组织或导入标准框架后，才能选择具体发展目标。",
+    });
+    return;
+  }
+  for (const framework of frameworks) {
+    if (framework.errors.length) {
+      container.createEl("p", {
+        cls: "setting-item-description",
+        text: `框架 ${framework.name} 暂不可用：${framework.errors.join("；")}`,
+      });
+      continue;
+    }
+    const frameDetails = container.createEl("details", { cls: "la-target-framework" });
+    frameDetails.open = frameworks.length === 1;
+    frameDetails.createEl("summary", { text: `${framework.name} · v${framework.version}` });
+    const root = buildTargetTree(framework);
+    const renderNode = (node: TargetTreeNode, parent: HTMLElement, level: number): void => {
+      for (const goal of node.goals) {
+        const key = targetKey(framework.id, goal.id);
+        const label = parent.createEl("label", { cls: "la-target-choice" });
+        label.style.paddingLeft = `${level * 14}px`;
+        const checkbox = label.createEl("input", { type: "checkbox" });
+        checkbox.checked = selected.has(key);
+        checkbox.onchange = () => {
+          if (checkbox.checked) selected.set(key, targetRefFor(framework, goal));
+          else selected.delete(key);
+        };
+        label.createEl("span", { text: `${goal.id} ${goal.title}` });
+        label.createEl("span", { cls: "la-target-path", text: goal.path || goal.title });
+      }
+      for (const child of node.children.values()) {
+        const details = parent.createEl("details", { cls: "la-target-branch" });
+        details.open = level < 1;
+        details.createEl("summary", { text: child.name });
+        renderNode(child, details, level + 1);
+      }
+    };
+    renderNode(root, frameDetails, 0);
+  }
 }
 
 export class NewActivityModal extends Modal {
@@ -27,6 +119,7 @@ export class NewActivityModal extends Modal {
   private selectedStudents = new Set<string>();
   private selectedGroups = new Set<string>();
   private selectedGoals = new Set<string>();
+  private selectedTargets = new Map<string, TargetRef>();
   private newParticipants = "";
   private newGoals = "";
   private sequenceSelect: HTMLSelectElement | null = null;
@@ -50,6 +143,7 @@ export class NewActivityModal extends Modal {
       sequence: "1",
       groups: [],
       framework_refs: options.defaultFrameworkRefs,
+      targets: options.defaultTargets ?? [],
     };
   }
 
@@ -209,6 +303,14 @@ export class NewActivityModal extends Modal {
         area.inputEl.rows = 2;
       });
 
+    const targetBox = contentEl.createDiv({ cls: "la-choice la-target-picker" });
+    targetBox.createDiv({ cls: "la-choice-title", text: "发展目标（多框架、多级目录）" });
+    targetBox.createEl("p", {
+      cls: "la-hint",
+      text: "按框架 → 目录逐级展开，选择本次行动要评估的具体目标；不选则继承项目目标。",
+    });
+    renderTargetTree(targetBox, this.options.frameworks, this.selectedTargets);
+
     new Setting(contentEl)
       .addButton((button) => button.setButtonText("取消").onClick(() => this.close()))
       .addButton((button) =>
@@ -243,11 +345,13 @@ export class NewActivityModal extends Modal {
       new Notice("至少选一个参与学员或小组。");
       return;
     }
-    const goals = Array.from(new Set([...this.selectedGoals, ...parseGoals(this.newGoals)]));
+    const targetLabels = [...this.selectedTargets.values()].map((target) => `${target.path}（${target.goalId}）`);
+    const goals = Array.from(new Set([...this.selectedGoals, ...parseGoals(this.newGoals), ...targetLabels]));
     if (!goals.length) {
       new Notice("至少选/写一条教学目标。");
       return;
     }
+    this.input.targets = [...this.selectedTargets.values()];
     this.input.participantsText = participants.join("、");
     this.input.goalsText = goals.join("\n");
     this.input.groups = [...this.selectedGroups];
@@ -287,9 +391,11 @@ export class NewSeriesModal extends Modal {
     description: "",
     goalsText: "",
     framework_refs: [],
+    targets: [],
   };
   private primaryFrameworkId = "";
   private supplementary = new Set<string>();
+  private selectedTargets = new Map<string, TargetRef>();
 
   constructor(
     app: App,
@@ -366,6 +472,14 @@ export class NewSeriesModal extends Modal {
       }
     }
 
+    const targetBox = contentEl.createDiv({ cls: "la-choice la-target-picker" });
+    targetBox.createDiv({ cls: "la-choice-title", text: "项目发展目标（多框架、多级目录）" });
+    targetBox.createEl("p", {
+      cls: "la-hint",
+      text: "项目目标可来自多份框架；行动默认继承，也可以在行动里缩小。",
+    });
+    renderTargetTree(targetBox, this.frameworks, this.selectedTargets);
+
     new Setting(contentEl)
       .setName("简介")
       .addTextArea((area) => {
@@ -402,7 +516,14 @@ export class NewSeriesModal extends Modal {
             for (const id of this.supplementary) {
               if (id !== this.primaryFrameworkId) refs.push({ id, role: "supplementary" });
             }
-            this.onSubmit({ ...this.input, title: this.input.title.trim(), framework_refs: refs });
+            for (const target of this.selectedTargets.values()) {
+              if (!refs.some((ref) => ref.id === target.frameworkId)) {
+                refs.push({ id: target.frameworkId, role: "supplementary" });
+              }
+            }
+            const targetLabels = [...this.selectedTargets.values()].map((target) => `${target.path}（${target.goalId}）`);
+            const goalsText = [this.input.goalsText, ...targetLabels].filter(Boolean).join("\n");
+            this.onSubmit({ ...this.input, title: this.input.title.trim(), framework_refs: refs, targets: [...this.selectedTargets.values()], goalsText });
           }),
       );
   }

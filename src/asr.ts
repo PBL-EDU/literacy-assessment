@@ -229,6 +229,33 @@ export async function transcribeFile(
   if (!settings.asrEnabled) throw new AsrError("语音转写已在设置里关闭。");
   const buffer = Buffer.isBuffer(fileBuffer) ? fileBuffer : Buffer.from(fileBuffer as ArrayBuffer);
   if (!buffer.length) throw new AsrError("素材文件是空的。");
+  let org: typeof import("./org") | null = null;
+  try {
+    org = await import("./org");
+  } catch {
+    org = null;
+  }
+  if (org?.orgActive()) {
+    if (!isDeepSeekAsrFile(fileName)) {
+      throw new AsrError("组织统一结算当前只支持 DeepSeek 官方 ASR（WAV/Ogg/Opus，≤8 MB，≤120 秒）；长课堂录音请用得到录音卡/录音台。");
+    }
+    if (buffer.length > DEEPSEEK_MAX_BYTES) {
+      throw new AsrError("组织 ASR 单文件上限 8 MB；长课堂录音请用得到录音卡/录音台。");
+    }
+    const duration = wavDurationSeconds(buffer);
+    if (duration && duration > DEEPSEEK_MAX_SECONDS) {
+      throw new AsrError("组织 ASR 最长 120 秒；长课堂录音请用得到录音卡/录音台。");
+    }
+    try {
+      const raw = await org.orgAsr(buffer, fileName, {});
+      return parseDeepSeekAsrResult(Buffer.from(raw, "utf8"));
+    } catch (error) {
+      throw new AsrError(`组织 ASR 网关失败：${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  if (org?.orgRequiresGateway()) {
+    throw new AsrError("组织会话不可用；为避免误用个人 Key，请先重试组织连接或退出组织。");
+  }
   if (settings.asrProvider === "deepseek") {
     return transcribeWithDeepSeek(settings, buffer, fileName);
   }

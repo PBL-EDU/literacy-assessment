@@ -76,6 +76,14 @@ export function renderActivityReport(a: ActivityAssessment): string {
     lines.push(`    role: ${yamlScalar(ref.role)}`);
   }
   if (!(a.framework_refs ?? []).length) lines.push("  []");
+  lines.push("targets:");
+  for (const target of a.targets ?? []) {
+    lines.push(`  - frameworkId: ${yamlScalar(target.frameworkId)}`);
+    lines.push(`    goalId: ${yamlScalar(target.goalId)}`);
+    lines.push(`    path: ${yamlScalar(target.path)}`);
+    lines.push(`    title: ${yamlScalar(target.title)}`);
+  }
+  if (!(a.targets ?? []).length) lines.push("  []");
   lines.push("framework_versions:");
   for (const version of a.framework_versions ?? []) lines.push(`  - ${yamlScalar(version)}`);
   if (!(a.framework_versions ?? []).length) lines.push("  []");

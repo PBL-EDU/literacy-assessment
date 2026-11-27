@@ -148,7 +148,7 @@ export async function assessActivity(
 ): Promise<AssessmentResult> {
   progress.status("收集行动笔记、观察、转写与图像说明…");
   const frameworkRefs = await resolveFrameworkRefs(app, settings, record);
-  const frameworkContext = await buildFrameworkContext(app, settings, frameworkRefs);
+  const frameworkContext = await buildFrameworkContext(app, settings, frameworkRefs, record.meta.targets);
   const missing = frameworkRefs.filter(
     (ref) => !frameworkContext.definitions.some((item) => item.id === ref.id),
   );
@@ -199,6 +199,7 @@ export async function assessActivity(
   }
   assessment.evidence_photos = photos.slice(0, 12);
   assessment.framework_refs = frameworkRefs;
+  assessment.targets = record.meta.targets;
   assessment.framework_versions = frameworkContext.versions;
   assessment.framework_hashes = frameworkContext.hashes;
   const primaryId = primaryFrameworkId(frameworkRefs);
