@@ -11,3 +11,6 @@ main.js
 *.log
 *.zip
 .DS_Store
+
+# Deployment backend is kept on the `server` branch, not in plugin releases.
+server/

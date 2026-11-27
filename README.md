@@ -78,6 +78,17 @@ PBL-EDU/literacy-assessment
 - [Architecture notes](docs/架构说明.md)
 - [Release notes v0.5.2](docs/release-notes-v0.5.2.md)
 
+
+## Organization server source
+
+The organization backend (`Fastify` + PostgreSQL) is deployment infrastructure and is kept on the separate Git branch:
+
+```text
+server
+```
+
+It is intentionally not part of the Obsidian plugin release/source review. Plugin releases contain only the plugin runtime.
+
 ## Development
 
 Requirements: Node.js 20+, pnpm/npm, Obsidian 1.6.0+.
