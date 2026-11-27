@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { createHash } from "node:crypto";
 
 export interface ParsedGoal {

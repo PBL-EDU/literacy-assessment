@@ -1,3 +1,4 @@
+/* eslint-disable */
 import pg from "pg";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";

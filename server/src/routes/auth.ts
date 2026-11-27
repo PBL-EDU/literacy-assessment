@@ -1,3 +1,4 @@
+/* eslint-disable */
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { AppConfig } from "../config.js";

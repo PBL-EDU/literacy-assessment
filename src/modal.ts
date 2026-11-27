@@ -101,8 +101,8 @@ function renderTargetTree(
           if (checkbox.checked) selected.set(key, targetRefFor(framework, goal));
           else selected.delete(key);
         };
-        label.createEl("span", { text: `${goal.id} ${goal.title}` });
-        label.createEl("span", { cls: "la-target-path", text: goal.path || goal.title });
+        label.createSpan({ text: `${goal.id} ${goal.title}` });
+        label.createSpan({ cls: "la-target-path", text: goal.path || goal.title });
       }
       for (const child of node.children.values()) {
         const details = parent.createEl("details", { cls: "la-target-branch" });

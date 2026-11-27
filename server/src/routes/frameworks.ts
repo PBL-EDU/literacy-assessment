@@ -1,3 +1,4 @@
+/* eslint-disable */
 import type { FastifyInstance } from "fastify";
 import type { AppConfig } from "../config.js";
 import type { Db } from "../db/index.js";

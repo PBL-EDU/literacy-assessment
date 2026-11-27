@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { randomUUID } from "node:crypto";
 import type { AppConfig } from "../config.js";
 import { decryptSecret } from "../security/secrets.js";

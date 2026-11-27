@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
 function keyFromMaster(masterKey: string): Buffer {

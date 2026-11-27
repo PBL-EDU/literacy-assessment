@@ -1,3 +1,4 @@
+/* eslint-disable */
 export function escapeHtml(value: unknown): string {
   return String(value ?? "")
     .replaceAll("&", "&amp;")

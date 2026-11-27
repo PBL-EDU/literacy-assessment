@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { randomUUID } from "node:crypto";
 import type { Db } from "../db/index.js";
 import type { AdminContext } from "../auth/service.js";

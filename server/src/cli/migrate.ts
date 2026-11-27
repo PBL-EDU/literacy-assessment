@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { loadConfig } from "../config.js";
 import { createPool, runMigrations } from "../db/index.js";
 

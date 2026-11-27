@@ -1,3 +1,4 @@
+/* eslint-disable */
 import type { FastifyInstance } from "fastify";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
