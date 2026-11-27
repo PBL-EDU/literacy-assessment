@@ -510,6 +510,10 @@ export class NewSeriesModal extends Modal {
               new Notice("先填项目名称。");
               return;
             }
+            if (!this.selectedTargets.size) {
+              new Notice("至少选择一个素养发展目标。");
+              return;
+            }
             this.close();
             const refs: FrameworkRef[] = [];
             if (this.primaryFrameworkId) refs.push({ id: this.primaryFrameworkId, role: "primary" });
