@@ -4,9 +4,9 @@ import { z } from "zod";
 import type { AppConfig } from "../config.js";
 import type { Db } from "../db/index.js";
 import { requireMember } from "../auth/http.js";
-import { adminLogout, adminLogin, assignTeacherTeam, createInvite, createTeam, createTeacher, redeemInvite, refreshSession, revokeDevice, type AdminContext } from "../auth/service.js";
+import { adminLogout, adminLogin, assignTeacherTeam, createInvite, createTeam, createTeacher, createTenant, redeemInvite, refreshSession, revokeDevice, type AdminContext } from "../auth/service.js";
 import { adminPage, escapeHtml } from "../http/html.js";
-import { optionalAdmin, requireAdmin } from "../auth/http.js";
+import { optionalAdmin, requireAdmin, requirePlatformAdmin } from "../auth/http.js";
 
 const redeemSchema = z.object({
   code: z.string().min(8).max(24),
@@ -31,6 +31,13 @@ const inviteSchema = z.object({
 
 const teamSchema = z.object({
   name: z.string().min(1).max(80),
+});
+
+const tenantSchema = z.object({
+  name: z.string().min(1).max(80),
+  adminUsername: z.string().min(3).max(60),
+  adminPassword: z.string().min(12).max(200),
+  monthlyBudgetCny: z.coerce.number().min(0).max(100000000).default(0),
 });
 
 const teacherSchema = z.object({
@@ -151,7 +158,7 @@ export async function registerAuthRoutes(app: FastifyInstance, db: Db, config: A
             <tr><td>${members.rows[0]?.count ?? 0}</td><td>${teams.rows[0]?.count ?? 0}</td><td>${invites.rows[0]?.count ?? 0}</td><td>${frameworks.rows[0]?.count ?? 0}</td><td>¥${usage.rows[0]?.cost ?? "0"}</td></tr>
           </table>
         </div>
-        <div class="card"><h2>快捷入口</h2><p><a href="/admin/teams">团队</a> · <a href="/admin/teachers">教师</a> · <a href="/admin/invites">邀请教师</a> · <a href="/admin/members">成员</a> · <a href="/admin/frameworks">框架</a> · <a href="/admin/usage">用量</a> · <a href="/admin/settings">组织设置</a> · <a href="/admin/prices">模型价格</a> · <a href="/admin/logout">退出登录</a></p></div>`,
+        <div class="card"><h2>快捷入口</h2><p>${admin.isPlatformAdmin ? '<a href="/admin/tenants">租户</a> · ' : ''}<a href="/admin/teams">团队</a> · <a href="/admin/teachers">教师</a> · <a href="/admin/invites">邀请教师</a> · <a href="/admin/members">成员</a> · <a href="/admin/frameworks">框架</a> · <a href="/admin/usage">用量</a> · <a href="/admin/settings">组织设置</a> · <a href="/admin/prices">模型价格</a> · <a href="/admin/logout">退出登录</a></p></div>`,
         admin.username,
       ),
     );
@@ -308,6 +315,46 @@ export async function registerAuthRoutes(app: FastifyInstance, db: Db, config: A
       return reply.code(400).type("text/html").send(adminPage("分配团队失败", `<div class="card"><p class="error">${escapeHtml(error instanceof Error ? error.message : String(error))}</p></div>`, admin.username));
     }
     return reply.redirect("/admin/teachers");
+  });
+
+  app.get("/admin/tenants", async (request, reply) => {
+    const admin = await requirePlatformAdmin(db, request);
+    const rows = await db.query(
+      `SELECT o.id, o.name, o.slug, o.status, o.monthly_budget_cny,
+              count(DISTINCT m.id)::int AS members,
+              count(DISTINCT a.id)::int AS admins
+       FROM organizations o
+       LEFT JOIN members m ON m.org_id = o.id
+       LEFT JOIN admin_users a ON a.org_id = o.id
+       GROUP BY o.id ORDER BY o.created_at ASC`,
+    );
+    const table = rows.rows.map((row) => `<tr><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.slug)}</td><td>${escapeHtml(row.status)}</td><td>${row.members}</td><td>${row.admins}</td><td>¥${row.monthly_budget_cny}</td></tr>`).join("");
+    return reply.type("text/html").send(adminPage(
+      "租户",
+      `<div class="card"><h1>租户</h1><p><a href="/admin">返回总览</a></p>
+       <p class="muted">每个租户拥有独立团队、教师、框架、AI Key、预算和用量。租户之间不共享数据。</p>
+       <form method="post" action="/admin/tenants">
+         <label>租户名称</label><input name="name" maxlength="80" required>
+         <label>租户管理员用户名</label><input name="adminUsername" maxlength="60" required>
+         <label>初始密码（至少 12 位）</label><input name="adminPassword" type="password" minlength="12" required>
+         <label>月度预算（元）</label><input name="monthlyBudgetCny" type="number" min="0" step="0.01" value="0">
+         <p><button type="submit">创建租户与管理员</button></p>
+       </form>
+       <table><tr><th>名称</th><th>Slug</th><th>状态</th><th>教师</th><th>管理员</th><th>月预算</th></tr>${table}</table></div>`,
+      admin.username,
+    ));
+  });
+
+  app.post("/admin/tenants", async (request, reply) => {
+    const admin = await requirePlatformAdmin(db, request);
+    const input = tenantSchema.safeParse(request.body ?? {});
+    if (!input.success) return reply.code(400).type("text/html").send(adminPage("参数错误", `<div class="card"><p class="error">租户参数不合法。</p></div>`, admin.username));
+    try {
+      await createTenant(db, admin, input.data);
+    } catch (error) {
+      return reply.code(400).type("text/html").send(adminPage("创建租户失败", `<div class="card"><p class="error">${escapeHtml(error instanceof Error ? error.message : String(error))}</p></div>`, admin.username));
+    }
+    return reply.redirect("/admin/tenants");
   });
 
   app.get("/admin/login-check", async (request, reply) => {

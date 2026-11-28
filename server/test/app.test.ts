@@ -5,7 +5,8 @@ import { buildApp } from "../src/app.js";
 import { loadConfig } from "../src/config.js";
 import { runMigrations, type Db } from "../src/db/index.js";
 import { hashPassword, sha256 } from "../src/security/tokens.js";
-import { createInvite, createTeam, createTeacher, redeemInvite, type AdminContext } from "../src/auth/service.js";
+import { createInvite, createTeam, createTeacher, createTenant, redeemInvite, type AdminContext } from "../src/auth/service.js";
+import { adminLogin } from "../src/auth/service.js";
 
 class PgliteDb {
   constructor(private readonly db: PGlite) {}
@@ -13,7 +14,7 @@ class PgliteDb {
   async query(text: string, values: unknown[] = []): Promise<{ rows: Record<string, unknown>[]; rowCount: number }> {
     // PGlite's prepared-statement path accepts one command; migrations are a
     // multi-statement script in production PostgreSQL.
-    if (/CREATE TABLE/i.test(text) && text.includes(";")) {
+    if (/(CREATE TABLE|ALTER TABLE|UPDATE admin_users)/i.test(text) && text.includes(";")) {
       await this.db.exec(text);
       return { rows: [], rowCount: 0 };
     }
@@ -145,6 +146,7 @@ version: "1"
     id: "admin1",
     username: "admin",
     org: { id: "org1", name: "白日梦行动", slug: "dream" },
+    isPlatformAdmin: true,
   };
   const team = await createTeam(db, adminContext, "测试团队");
   const teacher = await createTeacher(db, adminContext, { name: "绑定老师", teamId: team.id });
@@ -162,6 +164,17 @@ version: "1"
   assert.equal(bound.member.displayName, "绑定老师");
   assert.equal(bound.member.teamName, "测试团队");
   assert.equal(bound.member.teamId, team.id);
+
+  const tenant = await createTenant(db, adminContext, {
+    name: "第二所学校",
+    adminUsername: "tenant-admin",
+    adminPassword: "tenant-password-123",
+    monthlyBudgetCny: 100,
+  });
+  assert.ok(tenant.tenantId);
+  const tenantLogin = await adminLogin(db, config, "tenant-admin", "tenant-password-123");
+  assert.equal(tenantLogin.admin.org.name, "第二所学校");
+  assert.equal(tenantLogin.admin.isPlatformAdmin, false);
 
   await app.close();
   await db.end();

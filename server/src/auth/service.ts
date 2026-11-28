@@ -8,6 +8,7 @@ import {
   sha256,
   signAccessToken,
   verifyAccessToken,
+  hashPassword,
   verifyPassword,
   verifyTotp,
   type AccessPayload,
@@ -218,6 +219,7 @@ export interface AdminContext {
   id: string;
   org: OrgInfo;
   username: string;
+  isPlatformAdmin: boolean;
 }
 
 export async function adminLogin(
@@ -260,6 +262,7 @@ export async function adminLogin(
       id: String(row.id),
       username: String(row.username),
       org: { id: String(row.org_id), name: String(row.org_name), slug: String(row.org_slug) },
+      isPlatformAdmin: Boolean(row.is_platform_admin),
     },
   };
 }
@@ -270,7 +273,7 @@ export async function authenticateAdmin(
 ): Promise<AdminContext | null> {
   if (!sessionToken) return null;
   const result = await db.query(
-    `SELECT a.id, a.username, a.org_id, o.name AS org_name, o.slug AS org_slug
+    `SELECT a.id, a.username, a.org_id, a.is_platform_admin, o.name AS org_name, o.slug AS org_slug
      FROM admin_sessions s
      JOIN admin_users a ON a.id = s.admin_user_id
      JOIN organizations o ON o.id = a.org_id
@@ -285,6 +288,7 @@ export async function authenticateAdmin(
     id: String(row.id),
     username: String(row.username),
     org: { id: String(row.org_id), name: String(row.org_name), slug: String(row.org_slug) },
+    isPlatformAdmin: Boolean(row.is_platform_admin),
   };
 }
 
@@ -392,6 +396,41 @@ export async function assignTeacherTeam(
     [teamId, String(team.rows[0].name), memberId, admin.org.id],
   );
   if (result.rowCount !== 1) throw new Error("教师不存在");
+}
+
+export async function createTenant(
+  db: Db,
+  admin: AdminContext,
+  input: { name: string; adminUsername: string; adminPassword: string; monthlyBudgetCny?: number },
+): Promise<{ tenantId: string; adminId: string; name: string }> {
+  if (!admin.isPlatformAdmin) throw new Error("只有平台管理员可以创建租户");
+  const name = input.name.trim();
+  const username = input.adminUsername.trim();
+  if (!name || name.length > 80) throw new Error("租户名称不合法");
+  if (!/^[A-Za-z0-9_.-]{3,60}$/.test(username)) throw new Error("租户管理员用户名不合法");
+  if (input.adminPassword.length < 12) throw new Error("租户管理员密码至少 12 位");
+  const tenantId = randomUUID();
+  const adminId = randomUUID();
+  const slug = `tenant-${tenantId.slice(0, 8)}`;
+  const passwordHash = await hashPassword(input.adminPassword);
+  await withTransaction(db, async (client) => {
+    await client.query(
+      `INSERT INTO organizations (id, name, slug, status, monthly_budget_cny)
+       VALUES ($1, $2, $3, 'active', $4)`,
+      [tenantId, name, slug, input.monthlyBudgetCny ?? 0],
+    );
+    await client.query(
+      `INSERT INTO admin_users (id, org_id, username, password_hash, status, is_platform_admin)
+       VALUES ($1, $2, $3, $4, 'active', false)`,
+      [adminId, tenantId, username, passwordHash],
+    );
+    await client.query(
+      `INSERT INTO audit_logs (id, org_id, admin_user_id, action, target, metadata)
+       VALUES ($1, $2, $3, 'tenant.create', $4, '{}'::jsonb)`,
+      [randomUUID(), admin.org.id, admin.id, tenantId],
+    );
+  });
+  return { tenantId, adminId, name };
 }
 
 export async function createMemberAndDeviceForTest(

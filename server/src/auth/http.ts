@@ -36,3 +36,11 @@ export async function requireAdmin(db: Db, request: FastifyRequest): Promise<Adm
   if (!admin) throw Object.assign(new Error("需要管理员登录"), { statusCode: 401 });
   return admin;
 }
+
+export async function requirePlatformAdmin(db: Db, request: FastifyRequest): Promise<AdminContext> {
+  const admin = await requireAdmin(db, request);
+  if (!admin.isPlatformAdmin) {
+    throw Object.assign(new Error("需要平台管理员权限"), { statusCode: 403 });
+  }
+  return admin;
+}

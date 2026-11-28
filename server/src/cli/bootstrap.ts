@@ -48,8 +48,8 @@ try {
       [orgId, orgName, slug],
     );
     await db.query(
-      `INSERT INTO admin_users (id, org_id, username, password_hash, status)
-       VALUES ($1, $2, $3, $4, 'active')`,
+      `INSERT INTO admin_users (id, org_id, username, password_hash, status, is_platform_admin)
+       VALUES ($1, $2, $3, $4, 'active', true)`,
       [adminId, orgId, username, passwordHash],
     );
     await db.query("COMMIT");
