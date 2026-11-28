@@ -151,7 +151,7 @@ export async function registerAuthRoutes(app: FastifyInstance, db: Db, config: A
             <tr><td>${members.rows[0]?.count ?? 0}</td><td>${teams.rows[0]?.count ?? 0}</td><td>${invites.rows[0]?.count ?? 0}</td><td>${frameworks.rows[0]?.count ?? 0}</td><td>¥${usage.rows[0]?.cost ?? "0"}</td></tr>
           </table>
         </div>
-        <div class="card"><h2>快捷入口</h2><p><a href="/admin/teams">团队</a> · <a href="/admin/teachers">教师</a> · <a href="/admin/invites">邀请教师</a> · <a href="/admin/members">成员</a> · <a href="/admin/frameworks">框架</a> · <a href="/admin/settings">组织设置</a> · <a href="/admin/prices">模型价格</a> · <a href="/admin/logout">退出登录</a></p></div>`,
+        <div class="card"><h2>快捷入口</h2><p><a href="/admin/teams">团队</a> · <a href="/admin/teachers">教师</a> · <a href="/admin/invites">邀请教师</a> · <a href="/admin/members">成员</a> · <a href="/admin/frameworks">框架</a> · <a href="/admin/usage">用量</a> · <a href="/admin/settings">组织设置</a> · <a href="/admin/prices">模型价格</a> · <a href="/admin/logout">退出登录</a></p></div>`,
         admin.username,
       ),
     );
@@ -233,6 +233,31 @@ export async function registerAuthRoutes(app: FastifyInstance, db: Db, config: A
       return reply.code(400).type("text/html").send(adminPage("创建失败", `<div class="card"><p class="error">${escapeHtml(error instanceof Error ? error.message : String(error))}</p></div>`, admin.username));
     }
     return reply.redirect("/admin/teams");
+  });
+
+  app.get("/admin/usage", async (request, reply) => {
+    const admin = await requireAdmin(db, request);
+    const rows = await db.query(
+      `SELECT coalesce(m.team_name, '未分配团队') AS team_name,
+              coalesce(m.display_name, '未知教师') AS teacher_name,
+              count(u.id)::int AS calls,
+              coalesce(sum(u.input_tokens + u.output_tokens), 0)::int AS tokens,
+              coalesce(sum(u.estimated_cost_cny), 0)::numeric(12,4) AS cost
+       FROM usage_events u
+       LEFT JOIN members m ON m.id = u.member_id
+       WHERE u.org_id = $1 AND u.created_at >= date_trunc('month', now())
+       GROUP BY team_name, teacher_name
+       ORDER BY cost DESC, team_name, teacher_name`,
+      [admin.org.id],
+    );
+    const table = rows.rows.map((row) => `<tr><td>${escapeHtml(row.team_name)}</td><td>${escapeHtml(row.teacher_name)}</td><td>${row.calls}</td><td>${row.tokens}</td><td>¥${row.cost}</td></tr>`).join("");
+    return reply.type("text/html").send(adminPage(
+      "用量",
+      `<div class="card"><h1>本月用量</h1><p><a href="/admin">返回总览</a> · <a href="/admin/settings">组织设置</a></p>
+       <p class="muted">按团队和教师聚合；实际费用以 DeepSeek 账单为准。</p>
+       <table><tr><th>团队</th><th>教师</th><th>调用次数</th><th>Token</th><th>估算费用</th></tr>${table || "<tr><td colspan='5'>本月还没有调用。</td></tr>"}</table></div>`,
+      admin.username,
+    ));
   });
 
   app.get("/admin/teachers", async (request, reply) => {
