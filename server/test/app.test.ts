@@ -7,6 +7,7 @@ import { runMigrations, type Db } from "../src/db/index.js";
 import { hashPassword, sha256 } from "../src/security/tokens.js";
 import { authenticateAdmin, createInvite, createTeam, createTeacher, createTenant, createTenantAdmin, redeemInvite, switchAdminTenant, type AdminContext } from "../src/auth/service.js";
 import { adminLogin } from "../src/auth/service.js";
+import { listPublishedTeamFrameworks, publishTeamFrameworkForMember } from "../src/frameworks/service.js";
 
 class PgliteDb {
   constructor(private readonly db: PGlite) {}
@@ -188,6 +189,26 @@ version: "1"
   const switchedContext = await authenticateAdmin(db, switched.token);
   assert.equal(switchedContext?.org.name, "第二所学校");
   assert.equal(switchedContext?.homeOrg.name, "白日梦行动");
+
+  await db.query("UPDATE teams SET lead_member_id = $1 WHERE id = $2", [bound.member.id, team.id]);
+  const teamMarkdown = `---
+framework_id: team-dream
+name: 团队框架
+version: "1.0"
+---
+
+| 路径 | 目标ID | 目标 | 维度 | L1 | L2 |
+| --- | --- | --- | --- | --- | --- |
+| 团队协作/分工 | TEAM.1 | 分工 | 团队协作 | 能参与 | 能负责 |
+`;
+  await publishTeamFrameworkForMember(
+    db,
+    { org: { id: "org1" }, member: { id: bound.member.id, teamId: team.id, isTeamLead: true } },
+    teamMarkdown,
+  );
+  const teamFrameworks = await listPublishedTeamFrameworks(db, "org1", team.id);
+  assert.equal(teamFrameworks.length, 1);
+  assert.equal(teamFrameworks[0].frameworkId, "team-dream");
 
   await app.close();
   await db.end();

@@ -26,6 +26,7 @@ export interface MemberInfo {
   role: "teacher" | "mentor";
   teamId?: string;
   teamName?: string;
+  isTeamLead?: boolean;
 }
 
 export interface AuthContext {
@@ -62,6 +63,7 @@ function memberFromRow(row: Record<string, unknown>): MemberInfo {
     role: row.role === "mentor" ? "mentor" : "teacher",
     teamId: row.team_id ? String(row.team_id) : undefined,
     teamName: row.team_name ? String(row.team_name) : undefined,
+    isTeamLead: Boolean(row.is_team_lead),
   };
 }
 
@@ -128,7 +130,15 @@ export async function redeemInvite(
     );
     await client.query("UPDATE invites SET used_count = used_count + 1 WHERE id = $1", [invite.id]);
 
-    const member: MemberInfo = { id: memberId, displayName: teacherName, role: "teacher", teamId, teamName };
+    let isTeamLead = false;
+    if (teamId) {
+      const lead = await client.query(
+        "SELECT 1 FROM teams WHERE id = $1 AND org_id = $2 AND lead_member_id = $3",
+        [teamId, orgId, memberId],
+      );
+      isTeamLead = Boolean(lead.rows[0]);
+    }
+    const member: MemberInfo = { id: memberId, displayName: teacherName, role: "teacher", teamId, teamName, isTeamLead };
     const org: OrgInfo = { id: orgId, name: String(invite.org_name), slug: String(invite.org_slug) };
     return {
       accessToken: accessTokenFor(member, orgId, deviceId, config),
@@ -151,6 +161,7 @@ export async function refreshSession(
       `SELECT d.id AS device_id, d.revoked_at,
               m.id AS member_id, m.display_name, m.role, m.status AS member_status,
               m.team_id, m.team_name,
+              EXISTS (SELECT 1 FROM teams t WHERE t.id = m.team_id AND t.lead_member_id = m.id) AS is_team_lead,
               o.id AS org_id, o.name AS org_name, o.slug AS org_slug, o.status AS org_status
        FROM devices d
        JOIN members m ON m.id = d.member_id
@@ -191,6 +202,7 @@ export async function authenticate(
   const result = await db.query(
     `SELECT m.id AS member_id, m.display_name, m.role, m.status AS member_status,
             m.team_id, m.team_name,
+            EXISTS (SELECT 1 FROM teams t WHERE t.id = m.team_id AND t.lead_member_id = m.id) AS is_team_lead,
             d.id AS device_id, d.revoked_at,
             o.id AS org_id, o.name AS org_name, o.slug AS org_slug, o.status AS org_status
      FROM members m
@@ -364,6 +376,31 @@ export async function createTeam(
     [id, admin.org.id, clean],
   );
   return { id, name: clean };
+}
+
+export async function assignTeamLead(
+  db: Db,
+  admin: AdminContext,
+  teamId: string,
+  memberId: string | null,
+): Promise<void> {
+  const team = await db.query(
+    "SELECT id FROM teams WHERE id = $1 AND org_id = $2 AND status = 'active'",
+    [teamId, admin.org.id],
+  );
+  if (!team.rows[0]) throw new Error("团队不存在或已停用");
+  if (memberId) {
+    const member = await db.query(
+      "SELECT id FROM members WHERE id = $1 AND org_id = $2 AND team_id = $3 AND status = 'active'",
+      [memberId, admin.org.id, teamId],
+    );
+    if (!member.rows[0]) throw new Error("导师不在该团队或已停用");
+  }
+  await db.query("UPDATE teams SET lead_member_id = $1, updated_at = now() WHERE id = $2 AND org_id = $3", [
+    memberId,
+    teamId,
+    admin.org.id,
+  ]);
 }
 
 export async function createTeacher(

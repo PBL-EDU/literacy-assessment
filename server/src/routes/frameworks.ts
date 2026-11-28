@@ -11,7 +11,9 @@ import {
   listFrameworkVersions,
   listPublishedFrameworks,
   publishFramework,
+  publishTeamFrameworkForMember,
   uploadFramework,
+  listPublishedTeamFrameworks,
 } from "../frameworks/service.js";
 
 const MAX_FRAMEWORK_BYTES = 2 * 1024 * 1024;
@@ -32,6 +34,45 @@ export async function registerFrameworkRoutes(app: FastifyInstance, db: Db, conf
       });
     } catch {
       return reply.code(401).send({ error: "未登录或成员已失效" });
+    }
+  });
+
+  app.get("/api/team-frameworks", async (request, reply) => {
+    try {
+      const auth = await requireMember(db, config, request);
+      if (!auth.member.teamId) return reply.send({ frameworks: [], teamLead: false });
+      const frameworks = await listPublishedTeamFrameworks(db, auth.org.id, auth.member.teamId);
+      return reply.send({
+        frameworks: frameworks.map((item) => ({
+          frameworkId: item.frameworkId,
+          name: item.name,
+          version: item.version,
+          hash: item.hash,
+          markdown: item.markdown,
+          teamId: item.teamId,
+          teamName: item.teamName,
+        })),
+        teamLead: Boolean(auth.member.isTeamLead),
+      });
+    } catch {
+      return reply.code(401).send({ error: "未登录或成员已失效" });
+    }
+  });
+
+  app.post("/api/team-frameworks", async (request, reply) => {
+    try {
+      const auth = await requireMember(db, config, request);
+      const body = (request.body ?? {}) as { markdown?: unknown };
+      const markdown = typeof body.markdown === "string" ? body.markdown : "";
+      if (!markdown.trim()) return reply.code(400).send({ error: "框架内容为空" });
+      if (Buffer.byteLength(markdown, "utf8") > MAX_FRAMEWORK_BYTES) {
+        return reply.code(413).send({ error: "团队框架不能超过 2 MB" });
+      }
+      const framework = await publishTeamFrameworkForMember(db, auth, markdown);
+      return reply.send({ framework });
+    } catch (error) {
+      const statusCode = (error as { statusCode?: number }).statusCode ?? 400;
+      return reply.code(statusCode).send({ error: error instanceof Error ? error.message : String(error) });
     }
   });
 

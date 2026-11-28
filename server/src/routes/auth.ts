@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { AppConfig } from "../config.js";
 import type { Db } from "../db/index.js";
 import { requireMember } from "../auth/http.js";
-import { adminLogout, adminLogin, assignTeacherTeam, createInvite, createTeam, createTeacher, createTenant, createTenantAdmin, redeemInvite, refreshSession, resetTenantAdminPassword, revokeDevice, setTenantAdminStatus, switchAdminTenant, type AdminContext } from "../auth/service.js";
+import { adminLogout, adminLogin, assignTeamLead, assignTeacherTeam, createInvite, createTeam, createTeacher, createTenant, createTenantAdmin, redeemInvite, refreshSession, resetTenantAdminPassword, revokeDevice, setTenantAdminStatus, switchAdminTenant, type AdminContext } from "../auth/service.js";
 import { adminPage, escapeHtml } from "../http/html.js";
 import { optionalAdmin, requireAdmin, requirePlatformAdmin } from "../auth/http.js";
 
@@ -216,16 +216,29 @@ export async function registerAuthRoutes(app: FastifyInstance, db: Db, config: A
 
   app.get("/admin/teams", async (request, reply) => {
     const admin = await requireAdmin(db, request);
-    const teams = await db.query(
-      "SELECT id, name, status, created_at FROM teams WHERE org_id = $1 ORDER BY name",
-      [admin.org.id],
-    );
-    const rows = teams.rows.map((row) => `<tr><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.status)}</td><td>${new Date(row.created_at).toLocaleDateString("zh-CN")}</td></tr>`).join("");
+    const [teams, members] = await Promise.all([
+      db.query(
+        "SELECT id, name, status, lead_member_id, created_at FROM teams WHERE org_id = $1 ORDER BY name",
+        [admin.org.id],
+      ),
+      db.query(
+        "SELECT id, display_name, team_id, status FROM members WHERE org_id = $1 AND status = 'active' ORDER BY display_name",
+        [admin.org.id],
+      ),
+    ]);
+    const memberRows = members.rows;
+    const rows = teams.rows.map((row) => {
+      const lead = memberRows.find((m) => String(m.id) === String(row.lead_member_id));
+      const options = [`<option value="">未指定</option>`]
+        .concat(memberRows.filter((m) => String(m.team_id) === String(row.id)).map((m) => `<option value="${escapeHtml(m.id)}"${String(m.id) === String(row.lead_member_id) ? " selected" : ""}>${escapeHtml(m.display_name)}</option>`))
+        .join("");
+      return `<tr><td>${escapeHtml(row.name)}</td><td>${escapeHtml(lead ? lead.display_name : "未指定")}</td><td>${escapeHtml(row.status)}</td><td>${new Date(row.created_at).toLocaleDateString("zh-CN")}</td><td><form method="post" action="/admin/teams/lead" style="display:flex;gap:4px"><input type="hidden" name="teamId" value="${escapeHtml(row.id)}"><select name="memberId">${options}</select><button type="submit">保存负责人</button></form></td></tr>`;
+    }).join("");
     return reply.type("text/html").send(adminPage(
       "团队",
       `<div class="card"><h1>团队</h1><p><a href="/admin">返回总览</a> · <a href="/admin/teachers">导师</a></p>
        <form method="post" action="/admin/teams"><label>团队名称</label><input name="name" maxlength="80" required><p><button type="submit">添加团队</button></p></form>
-       <table><tr><th>名称</th><th>状态</th><th>创建时间</th></tr>${rows || "<tr><td colspan='3'>还没有团队。</td></tr>"}</table></div>`,
+       <table><tr><th>名称</th><th>负责人</th><th>状态</th><th>创建时间</th><th>设置负责人</th></tr>${rows || "<tr><td colspan='5'>还没有团队。</td></tr>"}</table></div>`,
       admin.username,
     ));
   });
@@ -238,6 +251,19 @@ export async function registerAuthRoutes(app: FastifyInstance, db: Db, config: A
       await createTeam(db, admin, input.data.name);
     } catch (error) {
       return reply.code(400).type("text/html").send(adminPage("创建失败", `<div class="card"><p class="error">${escapeHtml(error instanceof Error ? error.message : String(error))}</p></div>`, admin.username));
+    }
+    return reply.redirect("/admin/teams");
+  });
+
+  app.post("/admin/teams/lead", async (request, reply) => {
+    const admin = await requireAdmin(db, request);
+    const body = (request.body ?? {}) as Record<string, unknown>;
+    const teamId = typeof body.teamId === "string" ? body.teamId : "";
+    const memberId = typeof body.memberId === "string" && body.memberId ? body.memberId : null;
+    try {
+      await assignTeamLead(db, admin, teamId, memberId);
+    } catch (error) {
+      return reply.code(400).type("text/html").send(adminPage("设置负责人失败", `<div class="card"><p class="error">${escapeHtml(error instanceof Error ? error.message : String(error))}</p></div>`, admin.username));
     }
     return reply.redirect("/admin/teams");
   });

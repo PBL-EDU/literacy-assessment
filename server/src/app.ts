@@ -58,7 +58,7 @@ export async function buildApp({ config, db }: BuildOptions): Promise<FastifyIns
   app.get("/health", async (_request, reply) => {
     try {
       await db.query("SELECT 1");
-      return reply.send({ ok: true, service: "literacy-assessment-server", version: "0.7.0" });
+      return reply.send({ ok: true, service: "literacy-assessment-server", version: "0.8.0" });
     } catch {
       return reply.code(503).send({ ok: false, service: "literacy-assessment-server" });
     }

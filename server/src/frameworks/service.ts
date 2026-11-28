@@ -133,3 +133,78 @@ async function audit(db: Db, admin: AdminContext, action: string, target: string
     [randomUUID(), admin.org.id, admin.id, action, target, JSON.stringify(metadata)],
   );
 }
+
+
+export interface PublishedTeamFramework {
+  frameworkId: string;
+  name: string;
+  version: string;
+  hash: string;
+  markdown: string;
+  teamId: string;
+  teamName: string;
+}
+
+export async function listPublishedTeamFrameworks(
+  db: Db,
+  orgId: string,
+  teamId: string,
+): Promise<PublishedTeamFramework[]> {
+  const result = await db.query(
+    `SELECT DISTINCT ON (f.framework_id) f.*, t.name AS team_name
+     FROM team_framework_versions f
+     JOIN teams t ON t.id = f.team_id
+     WHERE f.org_id = $1 AND f.team_id = $2 AND f.status = 'published'
+     ORDER BY f.framework_id, f.published_at DESC`,
+    [orgId, teamId],
+  );
+  return result.rows.map((row) => ({
+    frameworkId: String(row.framework_id),
+    name: String(row.name),
+    version: String(row.version),
+    hash: String(row.file_hash),
+    markdown: String(row.markdown),
+    teamId: String(row.team_id),
+    teamName: String(row.team_name),
+  }));
+}
+
+export async function publishTeamFrameworkForMember(
+  db: Db,
+  auth: { org: { id: string }; member: { id: string; teamId?: string; isTeamLead?: boolean } },
+  markdown: string,
+): Promise<PublishedTeamFramework> {
+  if (!auth.member.isTeamLead) throw Object.assign(new Error("只有团队负责人可以发布团队框架"), { statusCode: 403 });
+  if (!auth.member.teamId) throw Object.assign(new Error("导师还没有所属团队"), { statusCode: 400 });
+  const parsed = parseFrameworkMarkdown(markdown);
+  if (parsed.errors.length) {
+    throw Object.assign(new Error(`框架校验失败：${parsed.errors.join("；")}`), { statusCode: 400 });
+  }
+  const team = await db.query(
+    "SELECT id, name FROM teams WHERE id = $1 AND org_id = $2 AND status = 'active'",
+    [auth.member.teamId, auth.org.id],
+  );
+  if (!team.rows[0]) throw Object.assign(new Error("团队不存在或已停用"), { statusCode: 404 });
+  try {
+    await db.query(
+      `INSERT INTO team_framework_versions
+       (id, org_id, team_id, framework_id, name, version, file_hash, markdown, status, published_by, published_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'published', $9, now())`,
+      [randomUUID(), auth.org.id, auth.member.teamId, parsed.frameworkId, parsed.name, parsed.version, parsed.hash, markdown, auth.member.id],
+    );
+  } catch (error) {
+    if ((error as { code?: string }).code === "23505") {
+      throw Object.assign(new Error("这个团队框架版本已经存在"), { statusCode: 409 });
+    }
+    throw error;
+  }
+  return {
+    frameworkId: parsed.frameworkId,
+    name: parsed.name,
+    version: parsed.version,
+    hash: parsed.hash,
+    markdown,
+    teamId: auth.member.teamId,
+    teamName: String(team.rows[0].name),
+  };
+}
