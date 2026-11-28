@@ -20,7 +20,7 @@ export class LiteracySettingTab extends PluginSettingTab {
       {
         name: "素养评估设置",
         desc: "数据位置、框架、组织模式与 AI 服务",
-        aliases: ["数据目录", "框架", "组织", "API Key", "OCR", "ASR", "模型", "DeepSeek"],
+        aliases: ["数据目录", "框架", "组织", "API Key", "DeepSeek"],
         render: (setting) => {
           const host = setting.settingEl.createDiv({ cls: "la-settings-content" });
           this.renderSettings(host);
@@ -300,117 +300,6 @@ export class LiteracySettingTab extends PluginSettingTab {
         }),
       );
 
-    /* ---------------- 语音转写 ---------------- */
-    new Setting(containerEl).setName("语音转写").setHeading();
-    containerEl.createEl("p", {
-      cls: "setting-item-description",
-      text: "短音频使用 DeepSeek ASR（WAV/Ogg，≤8 MB、≤120 秒）。长课堂录音请用得到录音卡/录音台录制，再到侧栏点「同步得到」。",
-    });
-
-    new Setting(containerEl)
-      .setName("启用转写")
-      .setDesc("录音/视频会发送到下面的服务转成文字。")
-      .addToggle((toggle) =>
-        toggle.setValue(settings.asrEnabled).onChange(async (value) => {
-          settings.asrEnabled = value;
-          await this.plugin.saveSettings();
-        }),
-      );
-
-
-    new Setting(containerEl)
-      .setName("语言")
-      .setDesc("zh / en / auto；短音频转写语言。")
-      .addText((text) =>
-        text.setValue(settings.asrLanguage).onChange(async (value) => {
-          settings.asrLanguage = value.trim();
-          await this.plugin.saveSettings();
-        }),
-      );
-
-    /* ---------------- 图像理解 ---------------- */
-    new Setting(containerEl).setName("图像理解").setHeading();
-    containerEl.createEl("p", {
-      cls: "setting-item-description",
-      text: "视觉模型必须支持图片输入；deepseek-chat 等纯文本模型不能看图。视频会抽 3 个关键帧后走同一个视觉模型。",
-    });
-
-    new Setting(containerEl)
-      .setName("启用图像说明")
-      .setDesc("课堂照片、学习单照片会发送给视觉模型写观察说明。")
-      .addToggle((toggle) =>
-        toggle.setValue(settings.visionEnabled).onChange(async (value) => {
-          settings.visionEnabled = value;
-          await this.plugin.saveSettings();
-        }),
-      );
-
-    new Setting(containerEl)
-      .setName("视觉模型")
-      .setDesc("留空则用上面的文本模型。需要模型支持 image_url 输入。")
-      .addText((text) =>
-        text.setValue(settings.visionModel).onChange(async (value) => {
-          settings.visionModel = value.trim();
-          await this.plugin.saveSettings();
-        }),
-      );
-
-    new Setting(containerEl)
-      .setName("单次最多处理图片数")
-      .setDesc("控制费用；剩下的下次再跑。")
-      .addText((text) => {
-        text.inputEl.type = "number";
-        text.setValue(String(settings.visionMaxImages)).onChange(async (value) => {
-          const n = Number(value);
-          if (Number.isFinite(n) && n >= 1) {
-            settings.visionMaxImages = Math.round(n);
-            await this.plugin.saveSettings();
-          }
-        });
-      });
-
-    /* ---------------- OCR ---------------- */
-    new Setting(containerEl).setName("OCR（PDF/Word/PowerPoint）").setHeading();
-    containerEl.createEl("p", {
-      cls: "setting-item-description",
-      text: "DeepSeek 官方 OCR 可以把 PDF、Word、PowerPoint 和图片识别成文字，写入 转写/，供后续证据和报告使用。按页计费；API Key 默认复用上面的 AI Key。",
-    });
-
-    new Setting(containerEl)
-      .setName("启用 OCR")
-      .setDesc("AI 整理时自动识别 素材/ 里的 PDF/Word/PowerPoint。")
-      .addToggle((toggle) =>
-        toggle.setValue(settings.ocrEnabled).onChange(async (value) => {
-          settings.ocrEnabled = value;
-          await this.plugin.saveSettings();
-        }),
-      );
-
-    new Setting(containerEl)
-      .setName("OCR API Key")
-      .setDesc("留空则使用上面的 AI Key。")
-      .addText((text) => {
-        text.inputEl.type = "password";
-        text.setValue(settings.ocrApiKey).onChange(async (value) => {
-          settings.ocrApiKey = value.trim();
-          await this.plugin.saveSettings();
-        });
-      });
-
-    new Setting(containerEl)
-      .setName("识别方式")
-      .setDesc("text_recognition 更快；rich_layout_recognition 更适合复杂版式，但输出更长。")
-      .addDropdown((dropdown) =>
-        dropdown
-          .addOption("text_recognition", "纯文字提取")
-          .addOption("rich_layout_recognition", "保留版式识别")
-          .setValue(settings.ocrPurpose)
-          .onChange(async (value) => {
-            settings.ocrPurpose = value === "rich_layout_recognition" ? "rich_layout_recognition" : "text_recognition";
-            await this.plugin.saveSettings();
-          }),
-      );
-
     /* ---------------- 得到大脑 ---------------- */
     new Setting(containerEl).setName("得到大脑（录音接入）").setHeading();
     containerEl.createEl("p", {
@@ -559,7 +448,7 @@ export class LiteracySettingTab extends PluginSettingTab {
     new Setting(containerEl).setName("关于").setHeading();
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "素养评估 v0.7.2 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
+      text: "素养评估 v0.7.3 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
     });
     containerEl.createEl("p", {
       cls: "setting-item-description",
