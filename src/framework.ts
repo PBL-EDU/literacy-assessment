@@ -173,38 +173,48 @@ export async function loadFramework(app: App, path: string): Promise<FrameworkDe
   return parseFrameworkText(path, text);
 }
 
+export async function syncOrganizationFrameworks(
+  app: App,
+  settings: AssessmentSettings,
+): Promise<FrameworkDefinition[]> {
+  if (!orgActive()) return [];
+  const remote = await orgFrameworks();
+  const cacheRoot = `${frameworkRoot(settings)}/${TENANT_FRAMEWORK_FOLDER}/cache`;
+  await ensureFolder(app, cacheRoot);
+  const result: FrameworkDefinition[] = [];
+  for (const item of remote) {
+    const parsed = parseFrameworkText(`org://${item.frameworkId}`, item.markdown);
+    const framework: FrameworkDefinition = {
+      ...parsed,
+      id: item.frameworkId || parsed.id,
+      name: item.name || parsed.name,
+      version: item.version || parsed.version,
+      hash: item.hash || parsed.hash,
+      status: "active",
+      source: "tenant" as const,
+    };
+    try {
+      await app.vault.adapter.write(
+        normalizePath(`${cacheRoot}/${sanitizeName(framework.id)}.md`),
+        item.markdown,
+      );
+    } catch {
+      /* 缓存写入失败不影响本次使用 */
+    }
+    result.push(framework);
+  }
+  return result;
+}
+
 export async function listFrameworks(app: App, settings: AssessmentSettings): Promise<FrameworkDefinition[]> {
+  const out: FrameworkDefinition[] = [];
   if (orgActive()) {
     try {
-      const remote = await orgFrameworks();
-      const cacheRoot = `${frameworkRoot(settings)}/${TENANT_FRAMEWORK_FOLDER}/cache`;
-      await ensureFolder(app, cacheRoot);
-      return Promise.all(remote.map(async (item) => {
-        const parsed = parseFrameworkText(`org://${item.frameworkId}`, item.markdown);
-        const framework = {
-          ...parsed,
-          id: item.frameworkId || parsed.id,
-          name: item.name || parsed.name,
-          version: item.version || parsed.version,
-          hash: item.hash || parsed.hash,
-          status: "active",
-          source: "tenant" as const,
-        };
-        try {
-          await app.vault.adapter.write(
-            normalizePath(`${cacheRoot}/${sanitizeName(framework.id)}.md`),
-            item.markdown,
-          );
-        } catch {
-          /* 缓存写入失败不影响本次使用 */
-        }
-        return framework;
-      }));
+      out.push(...(await syncOrganizationFrameworks(app, settings)));
     } catch {
       // 组织网关暂时不可用时使用本地缓存/文件，避免整个侧栏无法工作。
     }
   }
-  const out: FrameworkDefinition[] = [];
   for (const path of frameworkFiles(app, settings)) {
     const framework = await loadFramework(app, path);
     if (framework) out.push(framework);
@@ -226,7 +236,11 @@ export async function listFrameworks(app: App, settings: AssessmentSettings): Pr
     const existing = byId.get(key);
     if (!existing || compareVersion(framework.version, existing.version) > 0) byId.set(key, framework);
   }
-  return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name, "zh"));
+  const rank = (source: FrameworkDefinition["source"]): number =>
+    source === "tenant" ? 0 : source === "team" ? 1 : source === "personal" ? 2 : 3;
+  return [...byId.values()].sort(
+    (a, b) => rank(a.source) - rank(b.source) || a.name.localeCompare(b.name, "zh"),
+  );
 }
 
 function compareVersion(a: string, b: string): number {

@@ -140,6 +140,21 @@ export class LiteracySettingTab extends PluginSettingTab {
         text: labels[org.status] ?? "未加入组织",
       });
       if (org.error) containerEl.createEl("p", { cls: "setting-item-description", text: `状态：${org.error}` });
+      new Setting(containerEl)
+        .setName("组织框架")
+        .setDesc("从组织服务器下载已发布的统一素养框架；加入或重新连接组织时也会自动同步。")
+        .addButton((button) =>
+          button.setButtonText("同步组织框架").onClick(async () => {
+            button.setDisabled(true);
+            try {
+              await this.plugin.syncOrganizationFrameworks();
+            } catch (error) {
+              new Notice(error instanceof Error ? error.message : String(error), 9000);
+            } finally {
+              button.setDisabled(false);
+            }
+          }),
+        );
       if (settings.orgTeamName) {
         containerEl.createEl("p", {
           cls: "setting-item-description",
@@ -448,7 +463,7 @@ export class LiteracySettingTab extends PluginSettingTab {
     new Setting(containerEl).setName("关于").setHeading();
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "素养评估 v0.7.3 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
+      text: "素养评估 v0.7.4 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
     });
     containerEl.createEl("p", {
       cls: "setting-item-description",

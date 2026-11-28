@@ -52,7 +52,7 @@ import {
 } from "./modal";
 import { testConnection } from "./ai";
 import { canOcrFile } from "./ocr";
-import { listFrameworks } from "./framework";
+import { listFrameworks, syncOrganizationFrameworks as syncOrgFrameworks } from "./framework";
 import { FrameworkDiagnosticsModal, frameworkDiagnostics, importFrameworkMarkdown } from "./frameworkLibrary";
 import { parsePlanMarkdown, resolvePlanTargets } from "./plan";
 import { ensureLiteracyProfile } from "./profile";
@@ -87,6 +87,9 @@ export default class LiteracyAssessmentPlugin extends Plugin {
     configureOrgClient(this.settings, () => this.saveSettings());
     void initOrgSession(this.settings).then(async () => {
       await writeMentorProfile(this.app, this.settings);
+      if (this.organizationStatus().status === "active") {
+        await syncOrgFrameworks(this.app, this.settings).catch(() => []);
+      }
       this.refreshViews();
     });
     this.addSettingTab(new LiteracySettingTab(this.app, this));
@@ -555,7 +558,8 @@ export default class LiteracyAssessmentPlugin extends Plugin {
   async joinOrganization(input: { serverUrl: string; code: string; displayName: string; deviceName: string }): Promise<void> {
     await joinOrganization(this.settings, input);
     await writeMentorProfile(this.app, this.settings);
-    new Notice(`已加入组织：${this.settings.orgName}`);
+    const frameworks = await syncOrgFrameworks(this.app, this.settings).catch(() => []);
+    new Notice(`已加入组织：${this.settings.orgName}；已同步 ${frameworks.length} 份组织框架`);
     this.refreshViews();
   }
 
@@ -568,12 +572,19 @@ export default class LiteracyAssessmentPlugin extends Plugin {
   async reconnectOrganization(): Promise<void> {
     await refreshOrgSession();
     await writeMentorProfile(this.app, this.settings);
-    new Notice(`组织连接正常：${this.settings.orgName}`);
+    const frameworks = await syncOrgFrameworks(this.app, this.settings).catch(() => []);
+    new Notice(`组织连接正常：${this.settings.orgName}；已同步 ${frameworks.length} 份组织框架`);
     this.refreshViews();
   }
 
   organizationStatus(): ReturnType<typeof orgStatus> {
     return orgStatus();
+  }
+
+  async syncOrganizationFrameworks(): Promise<void> {
+    const frameworks = await syncOrgFrameworks(this.app, this.settings);
+    new Notice(frameworks.length ? `已同步 ${frameworks.length} 份组织框架` : "组织还没有发布框架");
+    this.refreshViews();
   }
 
   async importFrameworkBundle(path: string): Promise<string> {
