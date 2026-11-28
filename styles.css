@@ -496,3 +496,6 @@
 .tree-item-self[data-path*="00_框架/_"],
 .tree-item-self[data-path*="/00_框架/_"],
 .tree-item-self[data-path*="/00_框架/."] { display: none !important; }
+
+.nav-folder:has(> .nav-folder-title[data-path*="00_框架/_"]),
+.tree-item:has(> .tree-item-self[data-path*="00_框架/_"]) { display: none !important; }
