@@ -450,6 +450,7 @@ export interface ActivityAssessment {
   framework_refs?: FrameworkRef[];
   targets?: TargetRef[];
   student_targets?: Record<string, StudentTargetOverride[]>;
+  student_current_levels?: Record<string, Record<string, string>>;
   framework_versions?: string[];
   framework_hashes?: string[];
   disclaimer: string;

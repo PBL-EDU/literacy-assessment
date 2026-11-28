@@ -480,6 +480,7 @@ export class NewActivityModal extends Modal {
 
     const targetBox = contentEl.createDiv({ cls: "la-choice la-target-picker" });
     this.targetBox = targetBox;
+    targetBox.addEventListener("change", () => void this.renderStudentGaps());
     this.renderActionTargets();
 
     new Setting(contentEl)

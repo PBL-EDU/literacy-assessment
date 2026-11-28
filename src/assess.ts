@@ -201,6 +201,20 @@ export async function assessActivity(
   assessment.framework_refs = frameworkRefs;
   assessment.targets = record.meta.targets;
   assessment.student_targets = record.meta.student_targets;
+  const studentCurrentLevels: Record<string, Record<string, string>> = {};
+  for (const student of record.meta.participants) {
+    const profile = await readProfile(app, settings, student);
+    for (const target of record.meta.targets ?? []) {
+      if (target.kind === "custom") continue;
+      const current = profile.levels.find(
+        (item) => item.frameworkId === target.frameworkId && (item.goal === target.title || item.goal.includes(target.title)),
+      );
+      if (!current) continue;
+      const key = `${target.source ?? "tenant"}::${target.frameworkId}::${target.goalId}`;
+      studentCurrentLevels[student] = { ...(studentCurrentLevels[student] ?? {}), [key]: current.level };
+    }
+  }
+  assessment.student_current_levels = studentCurrentLevels;
   assessment.framework_versions = frameworkContext.versions;
   assessment.framework_hashes = frameworkContext.hashes;
   const primaryId = primaryFrameworkId(frameworkRefs);

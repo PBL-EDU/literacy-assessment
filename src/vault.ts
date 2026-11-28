@@ -489,6 +489,7 @@ function renderSeriesNote(meta: SeriesMeta): string {
   else for (const target of meta.targets ?? []) lines.push(...targetYamlLines(target, "  "));
   lines.push("student_targets:");
   lines.push(...studentTargetsYamlLines(meta.student_targets, "  "));
+  if (meta.plan_id) lines.push(`plan_id: ${yamlValue(meta.plan_id)}`);
   lines.push("---");
   lines.push("");
   lines.push(`# ${meta.title}`);
@@ -657,7 +658,6 @@ function renderActivityNote(meta: ActivityMeta): string {
   else for (const target of meta.targets ?? []) lines.push(...targetYamlLines(target, "  "));
   lines.push("student_targets:");
   lines.push(...studentTargetsYamlLines(meta.student_targets, "  "));
-  if (meta.plan_id) lines.push(`plan_id: ${yamlValue(meta.plan_id)}`);
   if (meta.plan_id) lines.push(`plan_id: ${yamlValue(meta.plan_id)}`);
   lines.push(`status: ${yamlValue(meta.status)}`);
   lines.push("---");

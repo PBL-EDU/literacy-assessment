@@ -242,6 +242,9 @@ export default class LiteracyAssessmentPlugin extends Plugin {
       const seriesRecords = await listSeriesRecords(this.app, this.settings);
       const activities = await listActivities(this.app, this.settings);
       const errors = [...plan.errors, ...resolved.errors];
+      if (plan.kind === "action" && !plan.project) {
+        errors.push("行动计划缺少所属项目 project。");
+      }
       if (plan.kind === "action" && plan.project) {
         const project = seriesRecords.find(
           (item) => item.meta.title === plan.project || item.meta.series_id === plan.project,

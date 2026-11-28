@@ -126,6 +126,25 @@ export function renderActivityReport(a: ActivityAssessment): string {
     }
     lines.push("");
   }
+  if ((a.targets ?? []).length && (a.students ?? []).length) {
+    lines.push("### 学生目标对照");
+    lines.push("");
+    lines.push("| 学生 | 目标 | 当前 level | 基础期望 | 个性化期望 | 本次评估 |");
+    lines.push("| --- | --- | --- | --- | --- | --- |");
+    for (const student of a.students ?? []) {
+      for (const target of a.targets ?? []) {
+        if (target.kind === "custom") continue;
+        const key = `${target.source ?? "tenant"}::${target.frameworkId}::${target.goalId}`;
+        const current = a.student_current_levels?.[student.student]?.[key] || "未记录";
+        const override = a.student_targets?.[student.student]?.find((item) => item.targetKey === key);
+        const assessed = student.evidence.find(
+          (item) => item.goal === target.title || item.goal.includes(target.title) || target.title.includes(item.goal),
+        )?.level || "未判定";
+        lines.push(`| ${cell(student.student)} | ${cell(`${target.goalId} ${target.title}`)} | ${cell(current)} | ${cell(target.expectedLevel || "未设定")} | ${cell(override?.expectedLevel || "—")} | ${cell(assessed)} |`);
+      }
+    }
+    lines.push("");
+  }
   lines.push("## 三、学员观察");
   lines.push("");
   if (!a.students.length) {
