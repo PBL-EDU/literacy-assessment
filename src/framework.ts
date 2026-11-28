@@ -46,7 +46,7 @@ export function frameworkSourceForPath(path: string): TargetSource {
 }
 
 export function frameworkSourceLabel(source: TargetSource | undefined): string {
-  return source === "tenant" ? "租户框架" : source === "team" ? "团队框架" : source === "personal" ? "个人框架" : "本地框架";
+  return source === "tenant" ? "组织框架" : source === "team" ? "团队框架" : source === "personal" ? "导师框架" : "本地框架";
 }
 
 export function frameworkHash(text: string): string {

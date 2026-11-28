@@ -183,6 +183,7 @@ export interface AssessmentSettings {
   orgServerUrl: string;
   orgRefreshToken: string;
   orgName: string;
+  orgId: string;
   orgMemberName: string;
   orgTeamName: string;
   orgMemberId: string;
@@ -230,6 +231,7 @@ export const DEFAULT_SETTINGS: AssessmentSettings = {
   orgServerUrl: "https://action.dreamook.com",
   orgRefreshToken: "",
   orgName: "",
+  orgId: "",
   orgMemberName: "",
   orgTeamName: "",
   orgMemberId: "",

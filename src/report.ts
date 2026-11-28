@@ -127,9 +127,9 @@ export function renderActivityReport(a: ActivityAssessment): string {
     lines.push("");
   }
   if ((a.targets ?? []).length && (a.students ?? []).length) {
-    lines.push("### 学生目标对照");
+    lines.push("### 同学目标对照");
     lines.push("");
-    lines.push("| 学生 | 目标 | 当前 level | 基础期望 | 个性化期望 | 本次评估 |");
+    lines.push("| 同学 | 目标 | 当前 level | 基础期望 | 个性化期望 | 本次评估 |");
     lines.push("| --- | --- | --- | --- | --- | --- |");
     for (const student of a.students ?? []) {
       for (const target of a.targets ?? []) {
@@ -145,7 +145,7 @@ export function renderActivityReport(a: ActivityAssessment): string {
     }
     lines.push("");
   }
-  lines.push("## 三、学员观察");
+  lines.push("## 三、同学观察");
   lines.push("");
   if (!a.students.length) {
     lines.push("（没有学员记录。）");

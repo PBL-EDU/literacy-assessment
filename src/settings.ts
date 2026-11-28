@@ -117,7 +117,7 @@ export class LiteracySettingTab extends PluginSettingTab {
       );
 
     /* ---------------- 组织版 ---------------- */
-    new Setting(containerEl).setName("组织版（v0.5）").setHeading();
+    new Setting(containerEl).setName("组织版").setHeading();
     {
       const org = this.plugin.organizationStatus();
       const labels: Record<string, string> = {
@@ -160,8 +160,8 @@ export class LiteracySettingTab extends PluginSettingTab {
           .setDesc("管理员在组织后台生成的一次性邀请码")
           .addText((text) => text.setPlaceholder("例如 AB12CD34").onChange((value) => { inviteCode = value.trim(); }));
         new Setting(containerEl)
-          .setName("你的名字")
-          .setDesc("邀请码未绑定姓名时使用；已绑定时以服务端教师记录为准")
+          .setName("导师姓名")
+          .setDesc("邀请码未绑定姓名时使用；已绑定时以服务端导师记录为准")
           .addText((text) => text.setValue(displayName).onChange((value) => { displayName = value.trim(); }));
         new Setting(containerEl)
           .setName("设备名")
@@ -169,7 +169,7 @@ export class LiteracySettingTab extends PluginSettingTab {
         new Setting(containerEl).addButton((button) =>
           button.setButtonText("加入组织").setCta().onClick(async () => {
             if (!inviteCode || !displayName) {
-              new Notice("请填写邀请码和你的名字。");
+              new Notice("请填写邀请码和导师姓名。");
               return;
             }
             button.setDisabled(true);
@@ -550,7 +550,7 @@ export class LiteracySettingTab extends PluginSettingTab {
     new Setting(containerEl).setName("关于").setHeading();
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "素养评估 v0.6.3 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
+      text: "素养评估 v0.6.4 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
     });
     containerEl.createEl("p", {
       cls: "setting-item-description",

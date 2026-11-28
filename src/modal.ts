@@ -425,9 +425,9 @@ export class NewActivityModal extends Modal {
     }
 
     const studentBox = contentEl.createDiv({ cls: "la-choice" });
-    studentBox.createDiv({ cls: "la-choice-title", text: "参与学员（可多选；选小组会自动带上成员）" });
+    studentBox.createDiv({ cls: "la-choice-title", text: "参与同学（可多选；选小组会自动带上成员）" });
     if (!this.options.students.length) {
-      studentBox.createEl("p", { cls: "la-hint", text: "还没有学员；可在下面「新增学员」里输入。" });
+      studentBox.createEl("p", { cls: "la-hint", text: "还没有同学；可在下面「新增同学」里输入。" });
     }
     for (const student of this.options.students) {
       const label = studentBox.createEl("label");
@@ -442,7 +442,7 @@ export class NewActivityModal extends Modal {
     }
 
     new Setting(contentEl)
-      .setName("新增学员")
+      .setName("新增同学")
       .setDesc("逗号/顿号/换行分隔；会和勾选的学员合并")
       .addTextArea((area) => {
         area.setPlaceholder("张三、李四").onChange((value) => {
@@ -592,7 +592,7 @@ export class NewActivityModal extends Modal {
       ]),
     );
     if (!participants.length) {
-      new Notice("至少选一个参与学员或小组。");
+      new Notice("至少选一个参与同学或小组。");
       return;
     }
     const targetLabels = [...this.selectedTargets.values()].map((target) =>
@@ -849,7 +849,7 @@ export class NewGroupModal extends Modal {
     const memberBox = contentEl.createDiv({ cls: "la-choice" });
     memberBox.createDiv({ cls: "la-choice-title", text: "固定成员" });
     if (!this.students.length) {
-      memberBox.createEl("p", { cls: "la-hint", text: "还没有学员；可以先在下面新增。" });
+      memberBox.createEl("p", { cls: "la-hint", text: "还没有同学；可以先在下面新增。" });
     }
     for (const student of this.students) {
       const label = memberBox.createEl("label");
@@ -1125,7 +1125,7 @@ export class SeriesReportModal extends Modal {
           .setCta()
           .onClick(() => {
             if (!this.series || !this.student) {
-              new Notice("先选择项目和学员。");
+              new Notice("先选择项目和同学。");
               return;
             }
             this.close();
@@ -1233,7 +1233,7 @@ export class StageReportModal extends Modal {
           .setCta()
           .onClick(() => {
             if (!this.student) {
-              new Notice("没有可选的学员。先在行动笔记里填写 participants。");
+              new Notice("没有可选择的同学。先在行动笔记里填写 participants。");
               return;
             }
             this.close();

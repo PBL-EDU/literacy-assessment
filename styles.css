@@ -486,3 +486,13 @@
 
 .la-settings-content { display: block; width: 100%; flex-basis: 100%; margin-top: 8px; }
 .setting-item:has(.la-settings-content) { display: block; }
+
+
+/* Hide internal framework source folders from the mentor file explorer.
+   They remain readable by the plugin; 00_框架/导师信息.md is the visible identity note. */
+.nav-folder-title[data-path*="00_框架/_"],
+.nav-folder-title[data-path*="/00_框架/_"],
+.nav-folder-title[data-path*="/00_框架/."],
+.tree-item-self[data-path*="00_框架/_"],
+.tree-item-self[data-path*="/00_框架/_"],
+.tree-item-self[data-path*="/00_框架/."] { display: none !important; }

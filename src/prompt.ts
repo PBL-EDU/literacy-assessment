@@ -19,7 +19,7 @@ const QUALITY_BLOCK = `
   },
   "level_proposals": [
     {
-      "student": "学员",
+      "student": "同学",
       "framework_id": "所属框架 id；不确定留空",
       "goal": "目标",
       "goal_title": "目标名称",
@@ -130,7 +130,7 @@ ${meta.goals.length ? meta.goals.map((g, i) => `${i + 1}. ${g}`).join("\n") : "�
 【结构化目标与期望 level】
 ${targetText}
 
-【学生个性化目标】
+【同学个性化目标】
 ${overrideText}
 
 【素养发展目标（框架摘录）】
@@ -175,7 +175,7 @@ const STAGE_SYSTEM = `你是「白日梦行动」的阶段性素养评估助手�
     {"goal": "素养目标/维度", "level": "量表 level 或 未判断", "evidence_summary": "跨活动证据摘要", "trend": "进步|稳定|波动|证据不足"}
   ],
   "evidence": [
-    {"student": "学员", "goal": "目标", "dimension": "维度", "level": "量表 level 或 未判断", "quote": "引文", "source": "活动名/文件名 @ 时间", "confidence": 0.0, "origin": "原文|推断", "note": "可选"}
+    {"student": "同学", "goal": "目标", "dimension": "维度", "level": "量表 level 或 未判断", "quote": "引文", "source": "活动名/文件名 @ 时间", "confidence": 0.0, "origin": "原文|推断", "note": "可选"}
   ],
   "strengths": ["具体优势"],
   "suggestions": ["下一步建议"],
@@ -183,7 +183,7 @@ const STAGE_SYSTEM = `你是「白日梦行动」的阶段性素养评估助手�
 }`;
 
 export function buildStageMessages(input: StagePromptInput): ChatMessage[] {
-  const user = `【学员】${input.student}
+  const user = `【同学】${input.student}
 【阶段】${input.period}
 【覆盖活动】${input.activityTitles.length ? input.activityTitles.join("；") : "（没有找到该学员的活动记录）"}
 
@@ -218,7 +218,7 @@ const SERIES_SYSTEM = `你是「白日梦行动」的项目成长报告助手。
     {"goal": "素养目标/维度", "level": "量表 level 或 未判断", "evidence_summary": "项目内证据摘要", "trend": "进步|稳定|波动|证据不足"}
   ],
   "evidence": [
-    {"student": "学员", "goal": "目标", "dimension": "维度", "level": "量表 level 或 未判断", "quote": "引文", "source": "行动名/文件名 @ 时间", "confidence": 0.0, "origin": "原文|推断", "note": "可选"}
+    {"student": "同学", "goal": "目标", "dimension": "维度", "level": "量表 level 或 未判断", "quote": "引文", "source": "行动名/文件名 @ 时间", "confidence": 0.0, "origin": "原文|推断", "note": "可选"}
   ],
   "strengths": ["具体优势"],
   "suggestions": ["下一步建议"],
@@ -235,7 +235,7 @@ export interface SeriesPromptInput {
 
 export function buildSeriesMessages(input: SeriesPromptInput): ChatMessage[] {
   const user = `【项目】${input.series}
-【学员】${input.student}
+【同学】${input.student}
 【项目内行动】${input.actionTitles.length ? input.actionTitles.join("；") : "（没有找到该项目的行动）"}
 
 【素养发展目标（框架摘录）】

@@ -86,6 +86,7 @@ function setActive(bundle: AuthBundle, settings: AssessmentSettings): void {
   state.error = "";
   settings.orgRefreshToken = bundle.refreshToken;
   settings.orgName = bundle.org.name;
+  settings.orgId = bundle.org.id;
   settings.orgMemberName = bundle.member.displayName;
   settings.orgTeamName = bundle.member.teamName ?? "";
   settings.orgMemberId = bundle.member.id;
@@ -102,6 +103,7 @@ function clearSession(settings: AssessmentSettings, invalid: boolean): void {
   state.error = invalid ? "组织会话已失效，请重新加入" : "";
   settings.orgRefreshToken = "";
   settings.orgName = "";
+  settings.orgId = "";
   settings.orgMemberName = "";
   settings.orgTeamName = "";
   settings.orgMemberId = "";

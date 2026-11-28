@@ -403,7 +403,7 @@ test("renderActivityReport 包含关键区块与证据", () => {
   const md = report.renderActivityReport(sampleAssessment());
   ok(md.includes("# 行动成长报告（社区小店调研）"), "缺标题");
   ok(md.includes("## 一、行动概览"), "缺概览");
-  ok(md.includes("## 三、学员观察"), "缺学员观察");
+  ok(md.includes("## 三、同学观察"), "缺学员观察");
   ok(md.includes("这家店帮邻居修东西"), "缺证据引文");
   ok(md.includes("00:05:00"), "缺时间戳");
   ok(md.includes("没有证据的地方写「未观察到」") || md.includes("未观察到"), "缺免责声明");

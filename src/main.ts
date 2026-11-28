@@ -57,6 +57,7 @@ import { parsePlanMarkdown, resolvePlanTargets } from "./plan";
 import { ensureLiteracyProfile } from "./profile";
 import { installBundleFromVault } from "./frameworkBundle";
 import { configureOrgClient, initOrgSession, joinOrganization, leaveOrganization, orgStatus, refreshOrgSession } from "./org";
+import { writeMentorProfile } from "./mentorProfile";
 import { approveReport, isApproved, readReview, requestChanges } from "./review";
 import { PendingReviewsModal, ReviewModal, type PendingReviewItem } from "./reviewModal";
 import { writeExternalReport } from "./external";
@@ -83,7 +84,10 @@ export default class LiteracyAssessmentPlugin extends Plugin {
   async onload(): Promise<void> {
     await this.loadSettings();
     configureOrgClient(this.settings, () => this.saveSettings());
-    void initOrgSession(this.settings).then(() => this.refreshViews());
+    void initOrgSession(this.settings).then(async () => {
+      await writeMentorProfile(this.app, this.settings);
+      this.refreshViews();
+    });
     this.addSettingTab(new LiteracySettingTab(this.app, this));
     this.registerView(LITERACY_VIEW_TYPE, (leaf) => new LiteracyView(leaf, this));
 
@@ -549,6 +553,7 @@ export default class LiteracyAssessmentPlugin extends Plugin {
 
   async joinOrganization(input: { serverUrl: string; code: string; displayName: string; deviceName: string }): Promise<void> {
     await joinOrganization(this.settings, input);
+    await writeMentorProfile(this.app, this.settings);
     new Notice(`已加入组织：${this.settings.orgName}`);
     this.refreshViews();
   }
@@ -561,6 +566,7 @@ export default class LiteracyAssessmentPlugin extends Plugin {
 
   async reconnectOrganization(): Promise<void> {
     await refreshOrgSession();
+    await writeMentorProfile(this.app, this.settings);
     new Notice(`组织连接正常：${this.settings.orgName}`);
     this.refreshViews();
   }
@@ -688,7 +694,7 @@ export default class LiteracyAssessmentPlugin extends Plugin {
   async runStageReport(): Promise<void> {
     const students = await listStudents(this.app, this.settings);
     if (!students.length) {
-      new Notice("还没有学员。先在「新建行动」里填写参与学员，或运行「创建数据目录结构」。");
+      new Notice("还没有同学。先在「新建行动」里填写参与同学，或运行「创建数据目录结构」。");
       return;
     }
     new StageReportModal(this.app, students, (student, period) => {
