@@ -200,10 +200,10 @@ export const DEFAULT_SETTINGS: AssessmentSettings = {
   aiTimeoutMs: 120_000,
 
   asrEnabled: true,
-  asrProvider: "openai",
-  asrBaseUrl: "https://api.openai.com/v1",
+  asrProvider: "deepseek",
+  asrBaseUrl: "https://api.deepseek.com/v1",
   asrApiKey: "",
-  asrModel: "whisper-1",
+  asrModel: "deepseek-asr",
   asrLanguage: "zh",
 
   ocrEnabled: true,

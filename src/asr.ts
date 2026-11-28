@@ -158,7 +158,7 @@ async function openAiAttempt(
   );
 }
 
-async function transcribeWithOpenAi(
+export async function transcribeWithOpenAi(
   settings: AssessmentSettings,
   buffer: Buffer,
   fileName: string,
@@ -256,7 +256,7 @@ export async function transcribeFile(
   if (org?.orgRequiresGateway()) {
     throw new AsrError("组织会话不可用；为避免误用个人 Key，请先重试组织连接或退出组织。");
   }
-  if (settings.asrProvider === "deepseek") {
+  if (settings.asrProvider === "deepseek" || !settings.asrApiKey) {
     return transcribeWithDeepSeek(settings, buffer, fileName);
   }
   return transcribeWithOpenAi(settings, buffer, fileName);

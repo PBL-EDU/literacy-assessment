@@ -207,18 +207,8 @@ export class LiteracySettingTab extends PluginSettingTab {
     new Setting(containerEl).setName("AI 服务（DeepSeek 官方优先）").setHeading();
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "推荐使用 DeepSeek 官方 API：一个 Key 同时用于文字评估、看图、OCR 和短音频转写。不需要安装 DeepSeek Harness。也可以使用其他 OpenAI 兼容服务。",
+      text: "一个 DeepSeek Key 同时用于文字评估、看图、OCR 和短音频转写。长课堂录音仍建议用得到录音卡/录音台录制，再同步得到。",
     });
-
-    new Setting(containerEl)
-      .setName("服务地址")
-      .setDesc("OpenAI 兼容的 Base URL，例如 https://api.deepseek.com/v1")
-      .addText((text) =>
-        text.setValue(settings.aiBaseUrl).onChange(async (value) => {
-          settings.aiBaseUrl = value.trim();
-          await this.plugin.saveSettings();
-        }),
-      );
 
     new Setting(containerEl)
       .setName("API Key")
@@ -238,39 +228,6 @@ export class LiteracySettingTab extends PluginSettingTab {
         text.setValue(settings.aiModel).onChange(async (value) => {
           settings.aiModel = value.trim();
           await this.plugin.saveSettings();
-        }),
-      );
-
-    new Setting(containerEl)
-      .setName("预设")
-      .setDesc("一键填入推荐地址与模型；Key 仍需自己填。")
-      .addButton((button) =>
-        button.setButtonText("DeepSeek 官方（推荐）").onClick(async () => {
-          settings.aiBaseUrl = "https://api.deepseek.com/v1";
-          settings.aiModel = "deepseek-chat";
-          settings.visionModel = "deepseek-flash";
-          settings.ocrBaseUrl = "https://api.deepseek.com/v1";
-          settings.asrProvider = "deepseek";
-          settings.asrBaseUrl = "https://api.deepseek.com/v1";
-          await this.plugin.saveSettings();
-          this.update();
-        }),
-      )
-      .addButton((button) =>
-        button.setButtonText("OpenAI").onClick(async () => {
-          settings.aiBaseUrl = "https://api.openai.com/v1";
-          settings.aiModel = "gpt-4o-mini";
-          await this.plugin.saveSettings();
-          this.update();
-        }),
-      )
-      .addButton((button) =>
-        button.setButtonText("Ollama 本地").onClick(async () => {
-          settings.aiBaseUrl = "http://127.0.0.1:11434/v1";
-          settings.aiModel = "qwen2.5:7b";
-          settings.aiApiKey = "ollama";
-          await this.plugin.saveSettings();
-          this.update();
         }),
       );
 
@@ -338,7 +295,7 @@ export class LiteracySettingTab extends PluginSettingTab {
     new Setting(containerEl).setName("语音转写").setHeading();
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "长课堂录音默认用「得到录音卡/录音台」录制，等待得到转写后在侧栏点「同步得到」。DeepSeek 官方 ASR 只用于短语音（WAV/Ogg，≤8 MB、≤120 秒）；MP3/M4A 或长录音也可另配 OpenAI 兼容服务。",
+      text: "短音频使用 DeepSeek ASR（WAV/Ogg，≤8 MB、≤120 秒）。长课堂录音请用得到录音卡/录音台录制，再到侧栏点「同步得到」。",
     });
 
     new Setting(containerEl)
@@ -351,87 +308,10 @@ export class LiteracySettingTab extends PluginSettingTab {
         }),
       );
 
-    new Setting(containerEl)
-      .setName("转写服务")
-      .setDesc("短音频用 DeepSeek；长课堂录音默认用得到录音卡录制并「同步得到」，也可选 OpenAI 兼容服务。")
-      .addDropdown((dropdown) =>
-        dropdown
-          .addOption("deepseek", "DeepSeek 官方（短音频）")
-          .addOption("openai", "OpenAI 兼容 /audio/transcriptions")
-          .setValue(settings.asrProvider)
-          .onChange(async (value) => {
-            settings.asrProvider = value === "deepseek" ? "deepseek" : "openai";
-            await this.plugin.saveSettings();
-          }),
-      );
-
-    new Setting(containerEl)
-      .setName("转写服务地址")
-      .setDesc("DeepSeek 填 https://api.deepseek.com/v1；OpenAI 兼容填到 /v1")
-      .addText((text) =>
-        text.setValue(settings.asrBaseUrl).onChange(async (value) => {
-          settings.asrBaseUrl = value.trim();
-          await this.plugin.saveSettings();
-        }),
-      );
-
-    new Setting(containerEl)
-      .setName("转写 API Key")
-      .setDesc("DeepSeek 官方可留空，自动使用上面的 AI Key；其他服务请单独填。")
-      .addText((text) => {
-        text.inputEl.type = "password";
-        text.setValue(settings.asrApiKey).onChange(async (value) => {
-          settings.asrApiKey = value.trim();
-          await this.plugin.saveSettings();
-        });
-      });
-
-    new Setting(containerEl)
-      .setName("转写预设")
-      .setDesc("只填地址和模型名，Key 仍需自己填。")
-      .addButton((button) =>
-        button.setButtonText("DeepSeek 官方").onClick(async () => {
-          settings.asrProvider = "deepseek";
-          settings.asrBaseUrl = "https://api.deepseek.com/v1";
-          settings.asrLanguage = "zh";
-          await this.plugin.saveSettings();
-          this.update();
-        }),
-      )
-      .addButton((button) =>
-        button.setButtonText("硅基流动").onClick(async () => {
-          settings.asrProvider = "openai";
-          settings.asrBaseUrl = "https://api.siliconflow.cn/v1";
-          settings.asrModel = "FunAudioLLM/SenseVoiceSmall";
-          settings.asrLanguage = "zh";
-          await this.plugin.saveSettings();
-          this.update();
-        }),
-      )
-      .addButton((button) =>
-        button.setButtonText("OpenAI").onClick(async () => {
-          settings.asrProvider = "openai";
-          settings.asrBaseUrl = "https://api.openai.com/v1";
-          settings.asrModel = "whisper-1";
-          settings.asrLanguage = "zh";
-          await this.plugin.saveSettings();
-          this.update();
-        }),
-      );
-
-    new Setting(containerEl)
-      .setName("转写模型")
-      .setDesc("例如 whisper-1 / FunAudioLLM/SenseVoiceSmall；以服务商文档为准。")
-      .addText((text) =>
-        text.setValue(settings.asrModel).onChange(async (value) => {
-          settings.asrModel = value.trim();
-          await this.plugin.saveSettings();
-        }),
-      );
 
     new Setting(containerEl)
       .setName("语言")
-      .setDesc("zh / en / auto；按服务商支持情况填。")
+      .setDesc("zh / en / auto；短音频转写语言。")
       .addText((text) =>
         text.setValue(settings.asrLanguage).onChange(async (value) => {
           settings.asrLanguage = value.trim();
@@ -493,16 +373,6 @@ export class LiteracySettingTab extends PluginSettingTab {
       .addToggle((toggle) =>
         toggle.setValue(settings.ocrEnabled).onChange(async (value) => {
           settings.ocrEnabled = value;
-          await this.plugin.saveSettings();
-        }),
-      );
-
-    new Setting(containerEl)
-      .setName("OCR 服务地址")
-      .setDesc("默认 https://api.deepseek.com/v1")
-      .addText((text) =>
-        text.setValue(settings.ocrBaseUrl).onChange(async (value) => {
-          settings.ocrBaseUrl = value.trim() || "https://api.deepseek.com/v1";
           await this.plugin.saveSettings();
         }),
       );
@@ -680,7 +550,7 @@ export class LiteracySettingTab extends PluginSettingTab {
     new Setting(containerEl).setName("关于").setHeading();
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "素养评估 v0.6.2 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
+      text: "素养评估 v0.6.3 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
     });
     containerEl.createEl("p", {
       cls: "setting-item-description",

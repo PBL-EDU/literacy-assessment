@@ -745,15 +745,6 @@ export class NewSeriesModal extends Modal {
       });
 
     new Setting(contentEl)
-      .setName("项目教学目标")
-      .setDesc("一行一条；新建行动时可以直接勾选")
-      .addTextArea((area) => {
-        area.setPlaceholder("1. 能说出小店为谁提供了什么价值\n2. 能在小组里承担角色并完成分工").onChange((value) => {
-          this.input.goalsText = value;
-        });
-        area.inputEl.rows = 4;
-      });
-
     new Setting(contentEl)
       .addButton((button) => button.setButtonText("取消").onClick(() => this.close()))
       .addButton((button) =>
