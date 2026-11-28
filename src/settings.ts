@@ -122,7 +122,7 @@ export class LiteracySettingTab extends PluginSettingTab {
       const org = this.plugin.organizationStatus();
       const labels: Record<string, string> = {
         none: "未加入组织：使用个人 DeepSeek API",
-        active: `已加入：${settings.orgName} · ${settings.orgMemberName}`,
+        active: `已加入：${settings.orgName}${settings.orgTeamName ? ` · ${settings.orgTeamName}` : ""} · ${settings.orgMemberName}`,
         offline: "组织服务暂时不可用；不会自动改用个人 API",
         invalid: "组织会话已失效，请重新加入",
       };
@@ -131,6 +131,12 @@ export class LiteracySettingTab extends PluginSettingTab {
         text: labels[org.status] ?? "未加入组织",
       });
       if (org.error) containerEl.createEl("p", { cls: "setting-item-description", text: `状态：${org.error}` });
+      if (settings.orgTeamName) {
+        containerEl.createEl("p", {
+          cls: "setting-item-description",
+          text: `团队：${settings.orgTeamName}`,
+        });
+      }
 
       let serverUrl = settings.orgServerUrl;
       let inviteCode = "";
@@ -155,7 +161,7 @@ export class LiteracySettingTab extends PluginSettingTab {
           .addText((text) => text.setPlaceholder("例如 AB12CD34").onChange((value) => { inviteCode = value.trim(); }));
         new Setting(containerEl)
           .setName("你的名字")
-          .setDesc("用于组织成员显示")
+          .setDesc("邀请码未绑定姓名时使用；已绑定时以服务端教师记录为准")
           .addText((text) => text.setValue(displayName).onChange((value) => { displayName = value.trim(); }));
         new Setting(containerEl)
           .setName("设备名")
@@ -674,7 +680,7 @@ export class LiteracySettingTab extends PluginSettingTab {
     new Setting(containerEl).setName("关于").setHeading();
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "素养评估 v0.6.1 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
+      text: "素养评估 v0.6.2 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
     });
     containerEl.createEl("p", {
       cls: "setting-item-description",

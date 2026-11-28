@@ -184,6 +184,8 @@ export interface AssessmentSettings {
   orgRefreshToken: string;
   orgName: string;
   orgMemberName: string;
+  orgTeamName: string;
+  orgMemberId: string;
 }
 
 export const DEFAULT_SETTINGS: AssessmentSettings = {
@@ -229,6 +231,8 @@ export const DEFAULT_SETTINGS: AssessmentSettings = {
   orgRefreshToken: "",
   orgName: "",
   orgMemberName: "",
+  orgTeamName: "",
+  orgMemberId: "",
 };
 
 export const FOLDERS = {

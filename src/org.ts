@@ -14,6 +14,8 @@ interface OrgState {
   status: OrgStatus;
   orgName: string;
   memberName: string;
+  teamName: string;
+  memberId: string;
   accessToken: string;
   accessExpiresAt: number;
   error: string;
@@ -24,7 +26,7 @@ interface AuthBundle {
   refreshToken: string;
   expiresIn: number;
   org: { id: string; name: string; slug: string };
-  member: { id: string; displayName: string; role: string };
+  member: { id: string; displayName: string; role: string; teamId?: string; teamName?: string };
 }
 
 interface ChatOptions {
@@ -39,6 +41,8 @@ const state: OrgState = {
   status: "none",
   orgName: "",
   memberName: "",
+  teamName: "",
+  memberId: "",
   accessToken: "",
   accessExpiresAt: 0,
   error: "",
@@ -75,30 +79,40 @@ function setActive(bundle: AuthBundle, settings: AssessmentSettings): void {
   state.status = "active";
   state.orgName = bundle.org.name;
   state.memberName = bundle.member.displayName;
+  state.teamName = bundle.member.teamName ?? "";
+  state.memberId = bundle.member.id;
   state.accessToken = bundle.accessToken;
   state.accessExpiresAt = Date.now() + Math.max(30, bundle.expiresIn - 30) * 1000;
   state.error = "";
   settings.orgRefreshToken = bundle.refreshToken;
   settings.orgName = bundle.org.name;
   settings.orgMemberName = bundle.member.displayName;
+  settings.orgTeamName = bundle.member.teamName ?? "";
+  settings.orgMemberId = bundle.member.id;
 }
 
 function clearSession(settings: AssessmentSettings, invalid: boolean): void {
   state.status = invalid ? "invalid" : "none";
   state.orgName = "";
   state.memberName = "";
+  state.teamName = "";
+  state.memberId = "";
   state.accessToken = "";
   state.accessExpiresAt = 0;
   state.error = invalid ? "组织会话已失效，请重新加入" : "";
   settings.orgRefreshToken = "";
   settings.orgName = "";
   settings.orgMemberName = "";
+  settings.orgTeamName = "";
+  settings.orgMemberId = "";
 }
 
 export async function initOrgSession(settings: AssessmentSettings): Promise<void> {
   currentSettings = settings;
   state.orgName = settings.orgName;
   state.memberName = settings.orgMemberName;
+  state.teamName = settings.orgTeamName;
+  state.memberId = settings.orgMemberId;
   if (!settings.orgRefreshToken) {
     state.status = "none";
     return;
