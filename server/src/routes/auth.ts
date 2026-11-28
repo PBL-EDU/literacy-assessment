@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { AppConfig } from "../config.js";
 import type { Db } from "../db/index.js";
 import { requireMember } from "../auth/http.js";
-import { adminLogout, adminLogin, assignTeacherTeam, createInvite, createTeam, createTeacher, createTenant, redeemInvite, refreshSession, revokeDevice, type AdminContext } from "../auth/service.js";
+import { adminLogout, adminLogin, assignTeacherTeam, createInvite, createTeam, createTeacher, createTenant, createTenantAdmin, redeemInvite, refreshSession, resetTenantAdminPassword, revokeDevice, setTenantAdminStatus, switchAdminTenant, type AdminContext } from "../auth/service.js";
 import { adminPage, escapeHtml } from "../http/html.js";
 import { optionalAdmin, requireAdmin, requirePlatformAdmin } from "../auth/http.js";
 
@@ -257,7 +257,7 @@ export async function registerAuthRoutes(app: FastifyInstance, db: Db, config: A
        ORDER BY cost DESC, team_name, teacher_name`,
       [admin.org.id],
     );
-    const table = rows.rows.map((row) => `<tr><td>${escapeHtml(row.team_name)}</td><td>${escapeHtml(row.teacher_name)}</td><td>${row.calls}</td><td>${row.tokens}</td><td>¥${row.cost}</td></tr>`).join("");
+    const table = rows.rows.map((row) => `<tr><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.slug)}</td><td>${escapeHtml(row.status)}</td><td>${row.members}</td><td>${row.admins}</td><td>¥${row.monthly_budget_cny}</td><td><form method="post" action="/admin/tenants/switch" style="display:inline"><input type="hidden" name="orgId" value="${escapeHtml(row.id)}"><button type="submit">切换后台</button></form> <a href="/admin/tenants/${escapeHtml(row.id)}/admins">管理员</a></td></tr>`).join("");
     return reply.type("text/html").send(adminPage(
       "用量",
       `<div class="card"><h1>本月用量</h1><p><a href="/admin">返回总览</a> · <a href="/admin/settings">组织设置</a></p>
@@ -328,10 +328,10 @@ export async function registerAuthRoutes(app: FastifyInstance, db: Db, config: A
        LEFT JOIN admin_users a ON a.org_id = o.id
        GROUP BY o.id ORDER BY o.created_at ASC`,
     );
-    const table = rows.rows.map((row) => `<tr><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.slug)}</td><td>${escapeHtml(row.status)}</td><td>${row.members}</td><td>${row.admins}</td><td>¥${row.monthly_budget_cny}</td></tr>`).join("");
+    const table = rows.rows.map((row) => `<tr><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.slug)}</td><td>${escapeHtml(row.status)}</td><td>${row.members}</td><td>${row.admins}</td><td>¥${row.monthly_budget_cny}</td><td><form method="post" action="/admin/tenants/switch" style="display:inline"><input type="hidden" name="orgId" value="${escapeHtml(row.id)}"><button type="submit">切换后台</button></form> <a href="/admin/tenants/${escapeHtml(row.id)}/admins">管理员</a></td></tr>`).join("");
     return reply.type("text/html").send(adminPage(
       "租户",
-      `<div class="card"><h1>租户</h1><p><a href="/admin">返回总览</a></p>
+      `<div class="card"><h1>租户</h1><p><a href="/admin">返回总览</a> · <form method="post" action="/admin/tenants/switch" style="display:inline"><input type="hidden" name="orgId" value=""><button type="submit">回到我的租户</button></form></p>
        <p class="muted">每个租户拥有独立团队、教师、框架、AI Key、预算和用量。租户之间不共享数据。</p>
        <form method="post" action="/admin/tenants">
          <label>租户名称</label><input name="name" maxlength="80" required>
@@ -340,7 +340,7 @@ export async function registerAuthRoutes(app: FastifyInstance, db: Db, config: A
          <label>月度预算（元）</label><input name="monthlyBudgetCny" type="number" min="0" step="0.01" value="0">
          <p><button type="submit">创建租户与管理员</button></p>
        </form>
-       <table><tr><th>名称</th><th>Slug</th><th>状态</th><th>教师</th><th>管理员</th><th>月预算</th></tr>${table}</table></div>`,
+       <table><tr><th>名称</th><th>Slug</th><th>状态</th><th>教师</th><th>管理员</th><th>月预算</th><th>操作</th></tr>${table}</table></div>`,
       admin.username,
     ));
   });
@@ -355,6 +355,78 @@ export async function registerAuthRoutes(app: FastifyInstance, db: Db, config: A
       return reply.code(400).type("text/html").send(adminPage("创建租户失败", `<div class="card"><p class="error">${escapeHtml(error instanceof Error ? error.message : String(error))}</p></div>`, admin.username));
     }
     return reply.redirect("/admin/tenants");
+  });
+
+  app.post("/admin/tenants/switch", async (request, reply) => {
+    const admin = await requirePlatformAdmin(db, request);
+    const body = (request.body ?? {}) as Record<string, unknown>;
+    const orgId = typeof body.orgId === "string" && body.orgId ? body.orgId : null;
+    try {
+      await switchAdminTenant(db, request.cookies?.la_admin ?? "", orgId);
+    } catch (error) {
+      return reply.code(400).type("text/html").send(adminPage("切换租户失败", `<div class="card"><p class="error">${escapeHtml(error instanceof Error ? error.message : String(error))}</p></div>`, admin.username));
+    }
+    return reply.redirect("/admin");
+  });
+
+  app.get("/admin/tenants/:tenantId/admins", async (request, reply) => {
+    const admin = await requirePlatformAdmin(db, request);
+    const tenantId = String((request.params as { tenantId?: string }).tenantId ?? "");
+    const tenant = await db.query("SELECT id, name FROM organizations WHERE id = $1", [tenantId]);
+    if (!tenant.rows[0]) return reply.code(404).type("text/html").send(adminPage("租户不存在", `<div class="card"><p class="error">租户不存在。</p></div>`, admin.username));
+    const admins = await db.query(
+      "SELECT id, username, status, created_at FROM admin_users WHERE org_id = $1 AND is_platform_admin = false ORDER BY created_at",
+      [tenantId],
+    );
+    const rows = admins.rows.map((row) => `<tr><td>${escapeHtml(row.username)}</td><td>${escapeHtml(row.status)}</td><td>${new Date(row.created_at).toLocaleDateString("zh-CN")}</td><td>
+      <form method="post" action="/admin/tenants/${escapeHtml(tenantId)}/admins/password" style="display:flex;gap:4px;flex-wrap:wrap">
+        <input type="hidden" name="adminId" value="${escapeHtml(row.id)}"><input type="password" name="password" minlength="12" placeholder="新密码至少12位" required><button type="submit">重置密码</button>
+      </form>
+      <form method="post" action="/admin/tenants/${escapeHtml(tenantId)}/admins/status"><input type="hidden" name="adminId" value="${escapeHtml(row.id)}"><input type="hidden" name="status" value="${row.status === "active" ? "disabled" : "active"}"><button type="submit">${row.status === "active" ? "停用" : "启用"}</button></form>
+    </td></tr>`).join("");
+    return reply.type("text/html").send(adminPage(
+      "租户管理员",
+      `<div class="card"><h1>${escapeHtml(tenant.rows[0].name)} · 管理员</h1><p><a href="/admin/tenants">返回租户</a></p>
+       <form method="post" action="/admin/tenants/${escapeHtml(tenantId)}/admins"><label>新管理员用户名</label><input name="username" maxlength="60" required><label>初始密码（至少12位）</label><input type="password" name="password" minlength="12" required><p><button type="submit">创建管理员</button></p></form>
+       <table><tr><th>用户名</th><th>状态</th><th>创建时间</th><th>操作</th></tr>${rows || "<tr><td colspan='4'>还没有租户管理员。</td></tr>"}</table></div>`,
+      admin.username,
+    ));
+  });
+
+  app.post("/admin/tenants/:tenantId/admins", async (request, reply) => {
+    const admin = await requirePlatformAdmin(db, request);
+    const tenantId = String((request.params as { tenantId?: string }).tenantId ?? "");
+    const body = (request.body ?? {}) as Record<string, unknown>;
+    try {
+      await createTenantAdmin(db, admin, { tenantId, username: String(body.username ?? ""), password: String(body.password ?? "") });
+    } catch (error) {
+      return reply.code(400).type("text/html").send(adminPage("创建管理员失败", `<div class="card"><p class="error">${escapeHtml(error instanceof Error ? error.message : String(error))}</p></div>`, admin.username));
+    }
+    return reply.redirect(`/admin/tenants/${tenantId}/admins`);
+  });
+
+  app.post("/admin/tenants/:tenantId/admins/password", async (request, reply) => {
+    const admin = await requirePlatformAdmin(db, request);
+    const tenantId = String((request.params as { tenantId?: string }).tenantId ?? "");
+    const body = (request.body ?? {}) as Record<string, unknown>;
+    try {
+      await resetTenantAdminPassword(db, admin, tenantId, String(body.adminId ?? ""), String(body.password ?? ""));
+    } catch (error) {
+      return reply.code(400).type("text/html").send(adminPage("重置密码失败", `<div class="card"><p class="error">${escapeHtml(error instanceof Error ? error.message : String(error))}</p></div>`, admin.username));
+    }
+    return reply.redirect(`/admin/tenants/${tenantId}/admins`);
+  });
+
+  app.post("/admin/tenants/:tenantId/admins/status", async (request, reply) => {
+    const admin = await requirePlatformAdmin(db, request);
+    const tenantId = String((request.params as { tenantId?: string }).tenantId ?? "");
+    const body = (request.body ?? {}) as Record<string, unknown>;
+    try {
+      await setTenantAdminStatus(db, admin, tenantId, String(body.adminId ?? ""), body.status === "active" ? "active" : "disabled");
+    } catch (error) {
+      return reply.code(400).type("text/html").send(adminPage("更新管理员失败", `<div class="card"><p class="error">${escapeHtml(error instanceof Error ? error.message : String(error))}</p></div>`, admin.username));
+    }
+    return reply.redirect(`/admin/tenants/${tenantId}/admins`);
   });
 
   app.get("/admin/login-check", async (request, reply) => {

@@ -217,7 +217,10 @@ export async function revokeDevice(db: Db, memberId: string, deviceId: string): 
 
 export interface AdminContext {
   id: string;
+  /** Active tenant for this admin session. */
   org: OrgInfo;
+  /** The admin's home tenant. */
+  homeOrg: OrgInfo;
   username: string;
   isPlatformAdmin: boolean;
 }
@@ -262,6 +265,7 @@ export async function adminLogin(
       id: String(row.id),
       username: String(row.username),
       org: { id: String(row.org_id), name: String(row.org_name), slug: String(row.org_slug) },
+      homeOrg: { id: String(row.org_id), name: String(row.org_name), slug: String(row.org_slug) },
       isPlatformAdmin: Boolean(row.is_platform_admin),
     },
   };
@@ -273,7 +277,9 @@ export async function authenticateAdmin(
 ): Promise<AdminContext | null> {
   if (!sessionToken) return null;
   const result = await db.query(
-    `SELECT a.id, a.username, a.org_id, a.is_platform_admin, o.name AS org_name, o.slug AS org_slug
+    `SELECT a.id, a.username, a.org_id, a.is_platform_admin,
+            o.name AS org_name, o.slug AS org_slug,
+            s.active_org_id
      FROM admin_sessions s
      JOIN admin_users a ON a.id = s.admin_user_id
      JOIN organizations o ON o.id = a.org_id
@@ -284,10 +290,21 @@ export async function authenticateAdmin(
   );
   const row = result.rows[0] as Record<string, unknown> | undefined;
   if (!row) return null;
+  const homeOrg: OrgInfo = { id: String(row.org_id), name: String(row.org_name), slug: String(row.org_slug) };
+  let org = homeOrg;
+  if (row.is_platform_admin && row.active_org_id) {
+    const active = await db.query(
+      "SELECT id, name, slug FROM organizations WHERE id = $1 AND status = 'active'",
+      [row.active_org_id],
+    );
+    const activeRow = active.rows[0];
+    if (activeRow) org = { id: String(activeRow.id), name: String(activeRow.name), slug: String(activeRow.slug) };
+  }
   return {
     id: String(row.id),
     username: String(row.username),
-    org: { id: String(row.org_id), name: String(row.org_name), slug: String(row.org_slug) },
+    org,
+    homeOrg,
     isPlatformAdmin: Boolean(row.is_platform_admin),
   };
 }
@@ -427,10 +444,94 @@ export async function createTenant(
     await client.query(
       `INSERT INTO audit_logs (id, org_id, admin_user_id, action, target, metadata)
        VALUES ($1, $2, $3, 'tenant.create', $4, '{}'::jsonb)`,
-      [randomUUID(), admin.org.id, admin.id, tenantId],
+      [randomUUID(), admin.homeOrg.id, admin.id, tenantId],
     );
   });
   return { tenantId, adminId, name };
+}
+
+export async function switchAdminTenant(
+  db: Db,
+  sessionToken: string,
+  orgId: string | null,
+): Promise<void> {
+  const session = await db.query(
+    `SELECT a.is_platform_admin FROM admin_sessions s
+     JOIN admin_users a ON a.id = s.admin_user_id
+     WHERE s.token_hash = $1 AND s.expires_at > now() AND a.status = 'active'`,
+    [sha256(sessionToken)],
+  );
+  if (!session.rows[0]?.is_platform_admin) throw new Error("只有平台管理员可以切换租户");
+  if (orgId) {
+    const org = await db.query("SELECT id FROM organizations WHERE id = $1 AND status = 'active'", [orgId]);
+    if (!org.rows[0]) throw new Error("租户不存在或已停用");
+  }
+  await db.query("UPDATE admin_sessions SET active_org_id = $1 WHERE token_hash = $2", [orgId, sha256(sessionToken)]);
+}
+
+export async function createTenantAdmin(
+  db: Db,
+  platformAdmin: AdminContext,
+  input: { tenantId: string; username: string; password: string },
+): Promise<{ id: string; username: string }> {
+  if (!platformAdmin.isPlatformAdmin) throw new Error("只有平台管理员可以创建租户管理员");
+  const username = input.username.trim();
+  if (!/^[A-Za-z0-9_.-]{3,60}$/.test(username)) throw new Error("管理员用户名不合法");
+  if (input.password.length < 12) throw new Error("管理员密码至少 12 位");
+  const org = await db.query("SELECT id FROM organizations WHERE id = $1 AND status = 'active'", [input.tenantId]);
+  if (!org.rows[0]) throw new Error("租户不存在或已停用");
+  const id = randomUUID();
+  const passwordHash = await hashPassword(input.password);
+  await db.query(
+    `INSERT INTO admin_users (id, org_id, username, password_hash, status, is_platform_admin)
+     VALUES ($1, $2, $3, $4, 'active', false)`,
+    [id, input.tenantId, username, passwordHash],
+  );
+  await db.query(
+    `INSERT INTO audit_logs (id, org_id, admin_user_id, action, target, metadata)
+     VALUES ($1, $2, $3, 'tenant.admin.create', $4, $5::jsonb)`,
+    [randomUUID(), platformAdmin.homeOrg.id, platformAdmin.id, id, JSON.stringify({ tenantId: input.tenantId })],
+  );
+  return { id, username };
+}
+
+export async function resetTenantAdminPassword(
+  db: Db,
+  platformAdmin: AdminContext,
+  tenantId: string,
+  adminId: string,
+  password: string,
+): Promise<void> {
+  if (!platformAdmin.isPlatformAdmin) throw new Error("只有平台管理员可以重置租户管理员密码");
+  if (password.length < 12) throw new Error("管理员密码至少 12 位");
+  const passwordHash = await hashPassword(password);
+  const result = await db.query(
+    `UPDATE admin_users SET password_hash = $1
+     WHERE id = $2 AND org_id = $3 AND is_platform_admin = false`,
+    [passwordHash, adminId, tenantId],
+  );
+  if (result.rowCount !== 1) throw new Error("租户管理员不存在");
+  await db.query(
+    `INSERT INTO audit_logs (id, org_id, admin_user_id, action, target, metadata)
+     VALUES ($1, $2, $3, 'tenant.admin.password_reset', $4, '{}'::jsonb)`,
+    [randomUUID(), platformAdmin.homeOrg.id, platformAdmin.id, adminId],
+  );
+}
+
+export async function setTenantAdminStatus(
+  db: Db,
+  platformAdmin: AdminContext,
+  tenantId: string,
+  adminId: string,
+  status: "active" | "disabled",
+): Promise<void> {
+  if (!platformAdmin.isPlatformAdmin) throw new Error("只有平台管理员可以停用租户管理员");
+  const result = await db.query(
+    `UPDATE admin_users SET status = $1
+     WHERE id = $2 AND org_id = $3 AND is_platform_admin = false`,
+    [status, adminId, tenantId],
+  );
+  if (result.rowCount !== 1) throw new Error("租户管理员不存在");
 }
 
 export async function createMemberAndDeviceForTest(

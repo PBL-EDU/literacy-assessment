@@ -5,7 +5,7 @@ import { buildApp } from "../src/app.js";
 import { loadConfig } from "../src/config.js";
 import { runMigrations, type Db } from "../src/db/index.js";
 import { hashPassword, sha256 } from "../src/security/tokens.js";
-import { createInvite, createTeam, createTeacher, createTenant, redeemInvite, type AdminContext } from "../src/auth/service.js";
+import { authenticateAdmin, createInvite, createTeam, createTeacher, createTenant, createTenantAdmin, redeemInvite, switchAdminTenant, type AdminContext } from "../src/auth/service.js";
 import { adminLogin } from "../src/auth/service.js";
 
 class PgliteDb {
@@ -49,8 +49,8 @@ test("auth, invite, member and framework APIs work end to end", async () => {
   );
   const passwordHash = await hashPassword("admin-password-123");
   await db.query(
-    `INSERT INTO admin_users (id, org_id, username, password_hash, status)
-     VALUES ('admin1', 'org1', 'admin', $1, 'active')`,
+    `INSERT INTO admin_users (id, org_id, username, password_hash, status, is_platform_admin)
+     VALUES ('admin1', 'org1', 'admin', $1, 'active', true)`,
     [passwordHash],
   );
   await db.query(
@@ -146,6 +146,7 @@ version: "1"
     id: "admin1",
     username: "admin",
     org: { id: "org1", name: "白日梦行动", slug: "dream" },
+    homeOrg: { id: "org1", name: "白日梦行动", slug: "dream" },
     isPlatformAdmin: true,
   };
   const team = await createTeam(db, adminContext, "测试团队");
@@ -175,6 +176,18 @@ version: "1"
   const tenantLogin = await adminLogin(db, config, "tenant-admin", "tenant-password-123");
   assert.equal(tenantLogin.admin.org.name, "第二所学校");
   assert.equal(tenantLogin.admin.isPlatformAdmin, false);
+
+  const secondAdmin = await createTenantAdmin(db, adminContext, {
+    tenantId: tenant.tenantId,
+    username: "tenant-admin-2",
+    password: "tenant-password-456",
+  });
+  assert.equal(secondAdmin.username, "tenant-admin-2");
+  const switched = await adminLogin(db, config, "admin", "admin-password-123");
+  await switchAdminTenant(db, switched.token, tenant.tenantId);
+  const switchedContext = await authenticateAdmin(db, switched.token);
+  assert.equal(switchedContext?.org.name, "第二所学校");
+  assert.equal(switchedContext?.homeOrg.name, "白日梦行动");
 
   await app.close();
   await db.end();
