@@ -2,7 +2,7 @@
  * 素养评估 · Obsidian 插件入口。
  */
 import { MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf, normalizePath } from "obsidian";
-import type { ActivityRecord, AssessmentSettings, NewActivityInput } from "./types";
+import type { ActivityRecord, AssessmentSettings, NewActivityInput, NewSeriesInput } from "./types";
 import { ACTIONS_SUBFOLDER, DEFAULT_SETTINGS, FOLDERS } from "./types";
 import {
   createActivity,
@@ -43,6 +43,8 @@ import {
   NewSeriesModal,
   NewStudentModal,
   OverviewReportModal,
+  PlanFileSuggestModal,
+  PlanImportPreviewModal,
   ProgressModal,
   SeriesReportModal,
   StageReportModal,
@@ -51,15 +53,27 @@ import {
 import { testConnection } from "./ai";
 import { canOcrFile } from "./ocr";
 import { listFrameworks } from "./framework";
+import { parsePlanMarkdown, resolvePlanTargets } from "./plan";
 import { ensureLiteracyProfile } from "./profile";
 import { installBundleFromVault } from "./frameworkBundle";
 import { configureOrgClient, initOrgSession, joinOrganization, leaveOrganization, orgStatus, refreshOrgSession } from "./org";
 import { approveReport, isApproved, readReview, requestChanges } from "./review";
 import { PendingReviewsModal, ReviewModal, type PendingReviewItem } from "./reviewModal";
 import { writeExternalReport } from "./external";
-import { groupActionsBySeries, LEGACY_SERIES_FOLDER, resolveFrameworkPath, unique } from "./core";
+import { groupActionsBySeries, LEGACY_SERIES_FOLDER, resolveFrameworkPath, todayISO, unique } from "./core";
 import { importGetnoteRecordings } from "./ingest";
 import { testGetnoteConnection as testGetnote } from "./getnote";
+
+function targetFrameworkRefs(targets: import("./types").TargetRef[]): import("./types").FrameworkRef[] {
+  const refs: import("./types").FrameworkRef[] = [];
+  for (const target of targets) {
+    if (!target.frameworkId) continue;
+    if (!refs.some((ref) => ref.id === target.frameworkId && ref.source === target.source)) {
+      refs.push({ id: target.frameworkId, role: refs.length ? "supplementary" : "primary", source: target.source });
+    }
+  }
+  return refs;
+}
 
 export default class LiteracyAssessmentPlugin extends Plugin {
   settings: AssessmentSettings = { ...DEFAULT_SETTINGS };
@@ -77,6 +91,7 @@ export default class LiteracyAssessmentPlugin extends Plugin {
 
     this.addCommand({ id: "open-panel", name: "打开素养评估面板", callback: () => void this.activateView() });
     this.addCommand({ id: "create-series", name: "新建项目", callback: () => this.openCreateSeries() });
+    this.addCommand({ id: "import-plan", name: "从标准 Markdown 导入项目/行动", callback: () => this.openImportPlan() });
     this.addCommand({ id: "create-group", name: "新建小组", callback: () => this.openCreateGroup() });
     this.addCommand({ id: "create-student", name: "新建同学", callback: () => this.openCreateStudent() });
     this.addCommand({ id: "create-activity", name: "新建行动", callback: () => this.openCreateActivity() });
@@ -211,6 +226,99 @@ export default class LiteracyAssessmentPlugin extends Plugin {
     await openFile(this.app, path);
   }
 
+  openImportPlan(): void {
+    const picker = new PlanFileSuggestModal(this.app, (file) => {
+      void this.previewImportedPlan(file);
+    });
+    picker.open();
+  }
+
+  private async previewImportedPlan(file: TFile): Promise<void> {
+    try {
+      const text = await readText(this.app, file.path);
+      const plan = parsePlanMarkdown(text);
+      const frameworks = await listFrameworks(this.app, this.settings);
+      const resolved = resolvePlanTargets(plan, frameworks);
+      const seriesRecords = await listSeriesRecords(this.app, this.settings);
+      const activities = await listActivities(this.app, this.settings);
+      const errors = [...plan.errors, ...resolved.errors];
+      if (plan.kind === "action" && plan.project) {
+        const project = seriesRecords.find(
+          (item) => item.meta.title === plan.project || item.meta.series_id === plan.project,
+        );
+        if (!project) errors.push(`找不到所属项目：${plan.project}`);
+        if (project) {
+          const projectKeys = new Set(
+            (project.meta.targets ?? [])
+              .filter((target) => target.kind !== "custom")
+              .map((target) => `${target.source ?? "tenant"}::${target.frameworkId}::${target.goalId}`),
+          );
+          for (const target of resolved.targets) {
+            if (target.kind === "custom") continue;
+            const key = `${target.source ?? "tenant"}::${target.frameworkId}::${target.goalId}`;
+            if (!projectKeys.has(key)) errors.push(`行动目标不在所属项目中：${target.goalId}`);
+          }
+        }
+      }
+      if (seriesRecords.some((item) => item.meta.plan_id === plan.planId) ||
+          activities.some((item) => item.meta.plan_id === plan.planId)) {
+        errors.push(`plan_id 已导入：${plan.planId}`);
+      }
+      new PlanImportPreviewModal(this.app, plan, resolved.targets, errors, async () => {
+        if (plan.kind === "project") {
+          const refs = targetFrameworkRefs(resolved.targets);
+          const input: NewSeriesInput = {
+            title: plan.title,
+            type: "项目",
+            mentor: plan.mentor,
+            description: plan.description,
+            goalsText: "",
+            framework_refs: refs,
+            targets: resolved.targets,
+            plan_id: plan.planId,
+          };
+          const record = await createSeries(this.app, this.settings, input);
+          new Notice(`已导入项目：${record.meta.title}`);
+          await syncAllRelations(this.app, this.settings);
+          await openFile(this.app, record.notePath);
+          return;
+        }
+        const project = (await listSeriesRecords(this.app, this.settings)).find(
+          (item) => item.meta.title === plan.project || item.meta.series_id === plan.project,
+        );
+        if (!project) throw new Error(`找不到所属项目：${plan.project}`);
+        if ((await listSeriesRecords(this.app, this.settings)).some((item) => item.meta.plan_id === plan.planId) ||
+            (await listActivities(this.app, this.settings)).some((item) => item.meta.plan_id === plan.planId)) {
+          throw new Error(`plan_id 已导入：${plan.planId}`);
+        }
+        const input: NewActivityInput = {
+          title: plan.title,
+          type: "行动",
+          date: plan.date || todayISO(),
+          startTime: "",
+          endTime: "",
+          mentor: plan.mentor,
+          participantsText: "",
+          goalsText: resolved.targets
+            .map((target) => target.kind === "custom" ? target.title : `${target.path}（${target.goalId}）`)
+            .join("\n"),
+          series: project.meta.title,
+          sequence: String(activities.filter((item) => item.meta.series_id === project.meta.series_id).length + 1),
+          groups: [],
+          framework_refs: targetFrameworkRefs(resolved.targets),
+          targets: resolved.targets,
+          plan_id: plan.planId,
+        };
+        const record = await createActivity(this.app, this.settings, input);
+        new Notice(`已导入行动：${record.meta.title}`);
+        await syncAllRelations(this.app, this.settings);
+        await openFile(this.app, record.notePath);
+      }).open();
+    } catch (error) {
+      new Notice(error instanceof Error ? error.message : String(error), 9000);
+    }
+  }
+
   openCreateSeries(): void {
     void (async () => {
       const frameworks = await listFrameworks(this.app, this.settings);
@@ -322,10 +430,12 @@ export default class LiteracyAssessmentPlugin extends Plugin {
     return {
       series,
       seriesGoals: Object.fromEntries(seriesRecords.map((item) => [item.meta.title, item.meta.goals])),
+      seriesTargets: Object.fromEntries(seriesRecords.map((item) => [item.meta.title, item.meta.targets ?? []])),
       groups: groupRecords.map((item) => ({ name: item.meta.name, members: item.meta.members })),
       students,
       goals,
       frameworks,
+      settings: this.settings,
       defaultFrameworkRefs: frameworks.length ? [{ id: frameworks[0].id, role: "primary" as const }] : [],
     };
   }

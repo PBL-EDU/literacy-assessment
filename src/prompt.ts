@@ -102,6 +102,20 @@ export function buildActivityMessages(input: ActivityPromptInput): ChatMessage[]
   const photoList = input.photos.length
     ? input.photos.map((photo, index) => `${index + 1}. ${photo}`).join("\n")
     : "（本次没有可用照片）";
+  const targetText = (meta.targets ?? []).length
+    ? (meta.targets ?? [])
+        .map((target) =>
+          target.kind === "custom"
+            ? `- [自定义] ${target.title}${target.expectedLevelText ? `（期望：${target.expectedLevelText}）` : ""}`
+            : `- [${target.source ?? "tenant"}/${target.frameworkId}] ${target.goalId} ${target.title}｜路径 ${target.path}｜期望 ${target.expectedLevel ?? "未设定"}`,
+        )
+        .join("\n")
+    : "（未设置结构化目标）";
+  const overrideText = Object.keys(meta.student_targets ?? {}).length
+    ? Object.entries(meta.student_targets ?? {})
+        .map(([student, rows]) => `${student}：${rows.map((row) => `${row.targetKey} → ${row.expectedLevel ?? row.expectedLevelText ?? "未设定"}`).join("；")}`)
+        .join("\n")
+    : "（无）";
   const user = `【活动信息】
 - 名称：${meta.title}
 - 类型：${meta.type}
@@ -112,6 +126,12 @@ export function buildActivityMessages(input: ActivityPromptInput): ChatMessage[]
 
 【本次活动的教学目标】
 ${meta.goals.length ? meta.goals.map((g, i) => `${i + 1}. ${g}`).join("\n") : "（导师未填写教学目标；请在 missing_evidence 里提醒补充）"}
+
+【结构化目标与期望 level】
+${targetText}
+
+【学生个性化目标】
+${overrideText}
 
 【素养发展目标（框架摘录）】
 ${framework || "（没有找到素养框架文件；请只依据教学目标评估，并提醒导师补充框架）"}

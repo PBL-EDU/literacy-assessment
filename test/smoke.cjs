@@ -11,6 +11,7 @@ const obsidianStub = {
   Plugin: class {},
   ItemView: class {},
   Modal: class {},
+  FuzzySuggestModal: class {},
   PluginSettingTab: class {},
   Setting: class {},
   Notice: class {},

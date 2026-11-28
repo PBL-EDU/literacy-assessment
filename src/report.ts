@@ -3,6 +3,7 @@
  */
 import type { ActivityAssessment, EvidenceItem, OverviewAssessment, StageAssessment } from "./types";
 import { safeFilePart } from "./core";
+import { studentTargetsYamlLines, targetYamlLines } from "./targets";
 
 function yamlScalar(value: string): string {
   return `"${String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
@@ -74,16 +75,14 @@ export function renderActivityReport(a: ActivityAssessment): string {
   for (const ref of a.framework_refs ?? []) {
     lines.push(`  - id: ${yamlScalar(ref.id)}`);
     lines.push(`    role: ${yamlScalar(ref.role)}`);
+    if (ref.source) lines.push(`    source: ${ref.source}`);
   }
   if (!(a.framework_refs ?? []).length) lines.push("  []");
   lines.push("targets:");
-  for (const target of a.targets ?? []) {
-    lines.push(`  - frameworkId: ${yamlScalar(target.frameworkId)}`);
-    lines.push(`    goalId: ${yamlScalar(target.goalId)}`);
-    lines.push(`    path: ${yamlScalar(target.path)}`);
-    lines.push(`    title: ${yamlScalar(target.title)}`);
-  }
   if (!(a.targets ?? []).length) lines.push("  []");
+  else for (const target of a.targets ?? []) lines.push(...targetYamlLines(target, "  "));
+  lines.push("student_targets:");
+  lines.push(...studentTargetsYamlLines(a.student_targets, "  "));
   lines.push("framework_versions:");
   for (const version of a.framework_versions ?? []) lines.push(`  - ${yamlScalar(version)}`);
   if (!(a.framework_versions ?? []).length) lines.push("  []");
@@ -114,6 +113,19 @@ export function renderActivityReport(a: ActivityAssessment): string {
     }
   }
   lines.push("");
+  if ((a.targets ?? []).length) {
+    lines.push("### 结构化目标与期望 level");
+    lines.push("");
+    lines.push("| 目标 | 来源 | 期望 level |");
+    lines.push("| --- | --- | --- |");
+    for (const target of a.targets ?? []) {
+      const title = target.kind === "custom" ? `其他：${target.title}` : `${target.goalId} ${target.title}`;
+      const source = target.kind === "custom" ? "自定义" : (target.source ?? "tenant");
+      const expected = target.kind === "custom" ? (target.expectedLevelText || "未设定") : (target.expectedLevel || "未设定");
+      lines.push(`| ${cell(title)} | ${cell(source)} | ${cell(expected)} |`);
+    }
+    lines.push("");
+  }
   lines.push("## 三、学员观察");
   lines.push("");
   if (!a.students.length) {
@@ -213,6 +225,7 @@ export function renderStageReport(s: StageAssessment): string {
   for (const ref of s.framework_refs ?? []) {
     lines.push(`  - id: ${yamlScalar(ref.id)}`);
     lines.push(`    role: ${yamlScalar(ref.role)}`);
+    if (ref.source) lines.push(`    source: ${ref.source}`);
   }
   if (!(s.framework_refs ?? []).length) lines.push("  []");
   lines.push("framework_versions:");
@@ -304,6 +317,7 @@ export function renderOverviewReport(o: OverviewAssessment): string {
   for (const ref of o.framework_refs ?? []) {
     lines.push(`  - id: ${yamlScalar(ref.id)}`);
     lines.push(`    role: ${yamlScalar(ref.role)}`);
+    if (ref.source) lines.push(`    source: ${ref.source}`);
   }
   if (!(o.framework_refs ?? []).length) lines.push("  []");
   lines.push("framework_versions:");

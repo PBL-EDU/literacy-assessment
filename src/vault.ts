@@ -18,6 +18,7 @@ import type {
   StudentProfile,
 } from "./types";
 import { ACTIVITY_NOTE, FOLDERS, GROUP_NOTE, SERIES_NOTE, STUDENT_NOTE, SUBFOLDERS } from "./types";
+import { studentTargetsYamlLines, targetYamlLines } from "./targets";
 import {
   activityFolderName,
   activityReportFileName,
@@ -246,6 +247,9 @@ export async function ensureDataStructure(app: App, settings: AssessmentSettings
   ]) {
     await ensureFolder(app, `${root}/${sub}`);
   }
+  for (const frameworkSub of ["_租户", "_团队", "_个人"]) {
+    await ensureFolder(app, `${root}/${FOLDERS.framework}/${frameworkSub}`);
+  }
   const frameworkPath = normalizePath(resolveFrameworkPath(settings));
   if (!(await pathExists(app, frameworkPath))) {
     await writeText(app, frameworkPath, DEFAULT_FRAMEWORK);
@@ -330,6 +334,7 @@ export async function createSeries(
     goals: parseGoals(input.goalsText),
     framework_refs: input.framework_refs ?? [],
     targets: input.targets ?? [],
+    plan_id: input.plan_id,
     created_at: nowISO(),
     status: "进行中",
   };
@@ -476,18 +481,14 @@ function renderSeriesNote(meta: SeriesMeta): string {
   for (const ref of meta.framework_refs ?? []) {
     lines.push(`  - id: ${yamlValue(ref.id)}`);
     lines.push(`    role: ${yamlValue(ref.role)}`);
+    if (ref.source) lines.push(`    source: ${ref.source}`);
   }
   if (!(meta.framework_refs ?? []).length) lines.push("  []");
   lines.push("targets:");
-  for (const target of meta.targets ?? []) {
-    lines.push(`  - frameworkId: ${yamlValue(target.frameworkId)}`);
-    lines.push(`    frameworkName: ${yamlValue(target.frameworkName)}`);
-    lines.push(`    frameworkVersion: ${yamlValue(target.frameworkVersion)}`);
-    lines.push(`    goalId: ${yamlValue(target.goalId)}`);
-    lines.push(`    path: ${yamlValue(target.path)}`);
-    lines.push(`    title: ${yamlValue(target.title)}`);
-  }
   if (!(meta.targets ?? []).length) lines.push("  []");
+  else for (const target of meta.targets ?? []) lines.push(...targetYamlLines(target, "  "));
+  lines.push("student_targets:");
+  lines.push(...studentTargetsYamlLines(meta.student_targets, "  "));
   lines.push("---");
   lines.push("");
   lines.push(`# ${meta.title}`);
@@ -648,18 +649,16 @@ function renderActivityNote(meta: ActivityMeta): string {
   for (const ref of meta.framework_refs ?? []) {
     lines.push(`  - id: ${yamlValue(ref.id)}`);
     lines.push(`    role: ${yamlValue(ref.role)}`);
+    if (ref.source) lines.push(`    source: ${ref.source}`);
   }
   if (!(meta.framework_refs ?? []).length) lines.push("  []");
   lines.push("targets:");
-  for (const target of meta.targets ?? []) {
-    lines.push(`  - frameworkId: ${yamlValue(target.frameworkId)}`);
-    lines.push(`    frameworkName: ${yamlValue(target.frameworkName)}`);
-    lines.push(`    frameworkVersion: ${yamlValue(target.frameworkVersion)}`);
-    lines.push(`    goalId: ${yamlValue(target.goalId)}`);
-    lines.push(`    path: ${yamlValue(target.path)}`);
-    lines.push(`    title: ${yamlValue(target.title)}`);
-  }
   if (!(meta.targets ?? []).length) lines.push("  []");
+  else for (const target of meta.targets ?? []) lines.push(...targetYamlLines(target, "  "));
+  lines.push("student_targets:");
+  lines.push(...studentTargetsYamlLines(meta.student_targets, "  "));
+  if (meta.plan_id) lines.push(`plan_id: ${yamlValue(meta.plan_id)}`);
+  if (meta.plan_id) lines.push(`plan_id: ${yamlValue(meta.plan_id)}`);
   lines.push(`status: ${yamlValue(meta.status)}`);
   lines.push("---");
   lines.push("");
@@ -749,8 +748,9 @@ export async function createActivity(
           ? [...input.framework_refs]
           : [];
       for (const target of input.targets ?? []) {
-        if (!refs.some((ref) => ref.id === target.frameworkId)) {
-          refs.push({ id: target.frameworkId, role: "supplementary" });
+        if (!target.frameworkId) continue;
+        if (!refs.some((ref) => ref.id === target.frameworkId && ref.source === target.source)) {
+          refs.push({ id: target.frameworkId, role: "supplementary", source: target.source });
         }
       }
       return refs;
@@ -761,6 +761,8 @@ export async function createActivity(
         : seriesRecord?.meta.targets?.length
           ? seriesRecord.meta.targets
           : [],
+    student_targets: input.student_targets ?? {},
+    plan_id: input.plan_id,
     status: "收集中",
     series: seriesRecord?.meta.title ?? "",
     series_id: seriesRecord?.meta.series_id ?? "",

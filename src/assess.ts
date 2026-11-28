@@ -200,6 +200,7 @@ export async function assessActivity(
   assessment.evidence_photos = photos.slice(0, 12);
   assessment.framework_refs = frameworkRefs;
   assessment.targets = record.meta.targets;
+  assessment.student_targets = record.meta.student_targets;
   assessment.framework_versions = frameworkContext.versions;
   assessment.framework_hashes = frameworkContext.hashes;
   const primaryId = primaryFrameworkId(frameworkRefs);

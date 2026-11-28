@@ -20,6 +20,7 @@ import type {
   SeriesMeta,
   StageAssessment,
   StudentAssessment,
+  StudentTargetOverride,
   TargetRef,
   TeachingFeedback,
 } from "./types";
@@ -486,10 +487,21 @@ export function normalizeFrameworkRefs(value: unknown): FrameworkRef[] {
       const record = item as Record<string, unknown>;
       const id = asString(record.id ?? record.framework_id);
       if (!id) continue;
-      refs.push({ id, role: record.role === "supplementary" ? "supplementary" : "primary" });
+      const sourceRaw = asString(record.source);
+      const source: FrameworkRef["source"] = sourceRaw === "team" || sourceRaw === "personal" ? sourceRaw : sourceRaw === "tenant" ? "tenant" : undefined;
+      refs.push({ id, role: record.role === "supplementary" ? "supplementary" : "primary", source });
     }
   }
   return refs;
+}
+
+export function targetKey(target: TargetRef): string {
+  if (target.kind === "custom") return `custom::${target.goalId || target.title}`;
+  return `${target.source ?? "tenant"}::${target.frameworkId}::${target.goalId}`;
+}
+
+export function isFrameworkTarget(target: TargetRef): boolean {
+  return target.kind !== "custom";
 }
 
 export function normalizeTargets(value: unknown): TargetRef[] {
@@ -498,18 +510,69 @@ export function normalizeTargets(value: unknown): TargetRef[] {
   for (const item of value) {
     if (!item || typeof item !== "object") continue;
     const r = item as Record<string, unknown>;
+    const kind = asString(r.kind) === "custom" ? "custom" : "framework";
+    const title = asString(r.title);
+    const expectedLevel = asString(r.expectedLevel ?? r.expected_level);
+    if (kind === "custom") {
+      const goalId = asString(r.goalId ?? r.goal_id ?? r.id) || `custom_${hashString(title).slice(0, 10)}`;
+      if (!title) continue;
+      out.push({
+        kind: "custom",
+        source: undefined,
+        frameworkId: "",
+        frameworkName: "",
+        frameworkVersion: "",
+        goalId,
+        path: "",
+        title,
+        description: asString(r.description),
+        expectedLevelText: asString(r.expectedLevelText ?? r.expected_level_text),
+        expectedLevel: expectedLevel || undefined,
+        inheritedFrom: r.inheritedFrom === "project" ? "project" : undefined,
+      });
+      continue;
+    }
     const frameworkId = asString(r.frameworkId ?? r.framework_id);
     const goalId = asString(r.goalId ?? r.goal_id);
-    const path = asString(r.path);
+    const path = asString(r.path) || title;
     if (!frameworkId || !goalId || !path) continue;
+    const sourceRaw = asString(r.source);
+    const source: TargetRef["source"] = sourceRaw === "team" || sourceRaw === "personal" ? sourceRaw : "tenant";
     out.push({
+      kind: "framework",
+      source,
       frameworkId,
       frameworkName: asString(r.frameworkName ?? r.framework_name),
       frameworkVersion: asString(r.frameworkVersion ?? r.framework_version),
       goalId,
       path,
-      title: asString(r.title),
+      title,
+      expectedLevel: expectedLevel || undefined,
+      inheritedFrom: r.inheritedFrom === "project" ? "project" : undefined,
     });
+  }
+  return out;
+}
+
+export function normalizeStudentTargets(value: unknown): Record<string, StudentTargetOverride[]> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const out: Record<string, StudentTargetOverride[]> = {};
+  for (const [student, list] of Object.entries(value as Record<string, unknown>)) {
+    if (!Array.isArray(list)) continue;
+    const rows: StudentTargetOverride[] = [];
+    for (const item of list) {
+      if (!item || typeof item !== "object") continue;
+      const r = item as Record<string, unknown>;
+      const targetKeyValue = asString(r.targetKey ?? r.target_key);
+      if (!targetKeyValue) continue;
+      rows.push({
+        targetKey: targetKeyValue,
+        expectedLevel: asString(r.expectedLevel ?? r.expected_level) || undefined,
+        expectedLevelText: asString(r.expectedLevelText ?? r.expected_level_text) || undefined,
+        reason: asString(r.reason) || undefined,
+      });
+    }
+    if (rows.length) out[student] = rows;
   }
   return out;
 }
@@ -555,6 +618,8 @@ export function normalizeSeriesMeta(raw: Record<string, unknown>, folder: string
     goals: asStringArray(raw.goals),
     framework_refs: normalizeFrameworkRefs(raw.framework_refs),
     targets: normalizeTargets(raw.targets),
+    student_targets: normalizeStudentTargets(raw.student_targets ?? raw.studentTargets),
+    plan_id: asString(raw.plan_id) || undefined,
     created_at: asString(raw.created_at, nowISO()),
     status: asString(raw.status, "进行中"),
   };

@@ -14,12 +14,16 @@ import type {
   FrameworkRef,
   SeriesRecord,
   TargetRef,
+  TargetSource,
 } from "./types";
 import { sanitizeName, splitFrontmatter, stemOf } from "./core";
 import { ensureFolder } from "./vault";
 import { orgActive, orgFrameworks } from "./org";
 
 export const FRAMEWORK_FOLDER = "00_框架";
+export const TENANT_FRAMEWORK_FOLDER = "_租户";
+export const TEAM_FRAMEWORK_FOLDER = "_团队";
+export const PERSONAL_FRAMEWORK_FOLDER = "_个人";
 
 export interface FrameworkContext {
   text: string;
@@ -31,6 +35,18 @@ export interface FrameworkContext {
 
 export function frameworkRoot(settings: AssessmentSettings): string {
   return `${settings.dataRoot}/${FRAMEWORK_FOLDER}`;
+}
+
+export function frameworkSourceForPath(path: string): TargetSource {
+  const normalized = path.replace(/\\/g, "/");
+  if (normalized.includes(`/${TEAM_FRAMEWORK_FOLDER}/`)) return "team";
+  if (normalized.includes(`/${PERSONAL_FRAMEWORK_FOLDER}/`)) return "personal";
+  if (normalized.includes(`/${TENANT_FRAMEWORK_FOLDER}/`) || normalized.includes("/_组织/")) return "tenant";
+  return "team";
+}
+
+export function frameworkSourceLabel(source: TargetSource | undefined): string {
+  return source === "tenant" ? "租户框架" : source === "team" ? "团队框架" : source === "personal" ? "个人框架" : "本地框架";
 }
 
 export function frameworkHash(text: string): string {
@@ -131,6 +147,7 @@ export function parseFrameworkText(path: string, text: string): FrameworkDefinit
     errors,
     mandatory,
     orgId,
+    source: frameworkSourceForPath(path),
   };
 }
 
@@ -142,7 +159,10 @@ export function frameworkFiles(app: App, settings: AssessmentSettings): string[]
     .map((file) => file.path)
     .filter((path) => path.startsWith(root))
     .filter((path) => !path.includes("/_历史/"))
-    .filter((path) => !path.includes("/_组织/") || path.startsWith(`${root}_组织/cache/`))
+    .filter((path) => {
+      if (path.includes("/_组织/")) return path.startsWith(`${root}_组织/cache/`);
+      return true;
+    })
     .sort((a, b) => a.localeCompare(b, "zh"));
 }
 
@@ -157,7 +177,7 @@ export async function listFrameworks(app: App, settings: AssessmentSettings): Pr
   if (orgActive()) {
     try {
       const remote = await orgFrameworks();
-      const cacheRoot = `${frameworkRoot(settings)}/_组织/cache`;
+      const cacheRoot = `${frameworkRoot(settings)}/${TENANT_FRAMEWORK_FOLDER}/cache`;
       await ensureFolder(app, cacheRoot);
       return Promise.all(remote.map(async (item) => {
         const parsed = parseFrameworkText(`org://${item.frameworkId}`, item.markdown);
@@ -168,6 +188,7 @@ export async function listFrameworks(app: App, settings: AssessmentSettings): Pr
           version: item.version || parsed.version,
           hash: item.hash || parsed.hash,
           status: "active",
+          source: "tenant" as const,
         };
         try {
           await app.vault.adapter.write(
@@ -201,8 +222,9 @@ export async function listFrameworks(app: App, settings: AssessmentSettings): Pr
   }
   const byId = new Map<string, FrameworkDefinition>();
   for (const framework of out) {
-    const existing = byId.get(framework.id);
-    if (!existing || compareVersion(framework.version, existing.version) > 0) byId.set(framework.id, framework);
+    const key = `${framework.source ?? "team"}::${framework.id}`;
+    const existing = byId.get(key);
+    if (!existing || compareVersion(framework.version, existing.version) > 0) byId.set(key, framework);
   }
   return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name, "zh"));
 }
@@ -221,9 +243,12 @@ export async function findFramework(
   app: App,
   settings: AssessmentSettings,
   id: string,
+  source?: TargetSource,
 ): Promise<FrameworkDefinition | null> {
   const frameworks = await listFrameworks(app, settings);
-  return frameworks.find((item) => item.id === id) ?? null;
+  return (
+    frameworks.find((item) => item.id === id && (!source || (item.source ?? "team") === source)) ?? null
+  );
 }
 
 export async function resolveFrameworkRefs(
@@ -234,7 +259,7 @@ export async function resolveFrameworkRefs(
   const refs = (record?.meta as { framework_refs?: FrameworkRef[] } | undefined)?.framework_refs;
   if (refs?.length) return refs;
   const frameworks = await listFrameworks(app, settings);
-  if (frameworks.length) return [{ id: frameworks[0].id, role: "primary" }];
+  if (frameworks.length) return [{ id: frameworks[0].id, role: "primary", source: frameworks[0].source }];
   return [];
 }
 
@@ -246,13 +271,20 @@ export async function buildFrameworkContext(
 ): Promise<FrameworkContext> {
   const definitions: FrameworkDefinition[] = [];
   for (const ref of refs) {
-    const framework = await findFramework(app, settings, ref.id);
+    const framework = await findFramework(app, settings, ref.id, ref.source);
     if (framework) definitions.push(framework);
   }
-  const selectedGoalIds = new Set((targets ?? []).map((target) => `${target.frameworkId}::${target.goalId}`));
+  const selectedGoalIds = new Set(
+    (targets ?? [])
+      .filter((target) => target.kind !== "custom")
+      .map((target) => `${target.source ?? "tenant"}::${target.frameworkId}::${target.goalId}`),
+  );
   const text = definitions
     .map((f) => {
-      const goals = f.goals.filter((g) => !selectedGoalIds.size || selectedGoalIds.has(`${f.id}::${g.id}`));
+      const source = f.source ?? "tenant";
+      const goals = f.goals.filter(
+        (g) => !selectedGoalIds.size || selectedGoalIds.has(`${source}::${f.id}::${g.id}`),
+      );
       return `# ${f.name}（${f.id} / v${f.version}）\n\n${goals.map((g) => `- ${g.path || g.title}（${g.id}）：${Object.entries(g.levels).map(([k, v]) => `${k}=${v}`).join("；")}`).join("\n")}`;
     })
     .join("\n\n---\n\n");

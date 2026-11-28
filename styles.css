@@ -471,3 +471,15 @@
 .la-target-path { color: var(--text-faint); font-size: 10px; margin-left: auto; }
 .la-target-subhead { font-size: 11px; color: var(--text-muted); margin: 3px 0 1px; }
 .la-target-choice { padding-left: 6px; }
+
+.la-target-level { margin-left: 6px; max-width: 110px; font-size: 11px; }
+.la-custom-targets { margin-top: 8px; border-top: 1px solid var(--background-modifier-border); padding-top: 6px; }
+.la-custom-target-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 12px; }
+.la-custom-title { flex: 1; min-width: 120px; }
+.la-custom-expected { flex: 1; min-width: 100px; }
+.la-custom-remove { font-size: 11px; }
+.la-custom-add { margin-top: 4px; }
+
+.la-gap-panel { margin-top: 8px; border-top: 1px solid var(--background-modifier-border); padding-top: 6px; }
+.la-gap-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 3px 0; font-size: 11px; }
+.la-gap-missing { color: var(--text-muted); }

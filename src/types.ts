@@ -12,6 +12,7 @@ export type FrameworkRole = "primary" | "supplementary";
 export interface FrameworkRef {
   id: string;
   role: FrameworkRole;
+  source?: TargetSource;
 }
 
 export interface FrameworkLevel {
@@ -28,13 +29,33 @@ export interface FrameworkGoal {
   levels: Record<string, string>;
 }
 
+export type TargetSource = "tenant" | "team" | "personal";
+
 export interface TargetRef {
+  /** 旧数据没有 kind，默认按 framework 处理 */
+  kind?: "framework" | "custom";
+  source?: TargetSource;
   frameworkId: string;
   frameworkName: string;
   frameworkVersion: string;
   goalId: string;
   path: string;
   title: string;
+  /** 框架目标的期望 level；必须是框架 level key */
+  expectedLevel?: string;
+  /** 自定义目标的说明 */
+  description?: string;
+  /** 自定义目标的自由文本期望 */
+  expectedLevelText?: string;
+  /** 行动从项目继承的目标标记 */
+  inheritedFrom?: "project";
+}
+
+export interface StudentTargetOverride {
+  targetKey: string;
+  expectedLevel?: string;
+  expectedLevelText?: string;
+  reason?: string;
 }
 
 export interface FrameworkDefinition {
@@ -49,6 +70,7 @@ export interface FrameworkDefinition {
   errors: string[];
   mandatory: boolean;
   orgId: string;
+  source?: TargetSource;
 }
 
 export interface QualitySummary {
@@ -252,6 +274,8 @@ export interface ActivityMeta {
   framework: string;
   framework_refs?: FrameworkRef[];
   targets?: TargetRef[];
+  student_targets?: Record<string, StudentTargetOverride[]>;
+  plan_id?: string;
   status: string;
   /** 所属系列/项目/课程名称 */
   series: string;
@@ -272,6 +296,8 @@ export interface SeriesMeta {
   goals: string[];
   framework_refs?: FrameworkRef[];
   targets?: TargetRef[];
+  student_targets?: Record<string, StudentTargetOverride[]>;
+  plan_id?: string;
   created_at: string;
   status: string;
 }
@@ -291,6 +317,7 @@ export interface NewSeriesInput {
   goalsText: string;
   framework_refs?: FrameworkRef[];
   targets?: TargetRef[];
+  plan_id?: string;
 }
 
 export interface GroupMeta {
@@ -340,6 +367,8 @@ export interface NewActivityInput {
   groups: string[];
   framework_refs?: FrameworkRef[];
   targets?: TargetRef[];
+  student_targets?: Record<string, StudentTargetOverride[]>;
+  plan_id?: string;
 }
 
 export interface ArtifactInfo {
@@ -420,6 +449,7 @@ export interface ActivityAssessment {
   teaching_feedback?: TeachingFeedback;
   framework_refs?: FrameworkRef[];
   targets?: TargetRef[];
+  student_targets?: Record<string, StudentTargetOverride[]>;
   framework_versions?: string[];
   framework_hashes?: string[];
   disclaimer: string;

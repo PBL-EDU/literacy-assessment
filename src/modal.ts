@@ -1,7 +1,7 @@
 /**
  * 弹窗：新建行动、进度、隐私确认、阶段报告。
  */
-import { App, Modal, Notice, Setting } from "obsidian";
+import { App, FuzzySuggestModal, Modal, Notice, Setting, TFile } from "obsidian";
 import type {
   ActivityType,
   FrameworkDefinition,
@@ -12,16 +12,23 @@ import type {
   NewGroupInput,
   NewSeriesInput,
   SeriesType,
+  AssessmentSettings,
+  StudentTargetOverride,
 } from "./types";
-import { parseGoals, parseParticipants, todayISO } from "./core";
+import { hashString, parseGoals, parseParticipants, todayISO } from "./core";
+import { frameworkSourceLabel } from "./framework";
+import { readProfile } from "./profile";
+import type { ParsedPlan } from "./plan";
 
 export interface ActivityFormOptions {
   series: Array<{ name: string; count: number }>;
   seriesGoals: Record<string, string[]>;
+  seriesTargets: Record<string, TargetRef[]>;
   groups: Array<{ name: string; members: string[] }>;
   students: string[];
   goals: string[];
   frameworks: FrameworkDefinition[];
+  settings: AssessmentSettings;
   defaultFrameworkRefs: FrameworkRef[];
   defaultTargets?: TargetRef[];
 }
@@ -32,13 +39,15 @@ interface TargetTreeNode {
   goals: FrameworkGoal[];
 }
 
-function targetKey(frameworkId: string, goalId: string): string {
-  return `${frameworkId}::${goalId}`;
+function targetKey(framework: FrameworkDefinition, goalId: string): string {
+  return `${framework.source ?? "tenant"}::${framework.id}::${goalId}`;
 }
 
 function targetRefFor(framework: FrameworkDefinition, goal: FrameworkGoal): TargetRef {
   const path = goal.path?.trim() || goal.title;
   return {
+    kind: "framework",
+    source: framework.source ?? "tenant",
     frameworkId: framework.id,
     frameworkName: framework.name,
     frameworkVersion: framework.version,
@@ -88,18 +97,41 @@ function renderTargetTree(
     }
     const frameDetails = container.createEl("details", { cls: "la-target-framework" });
     frameDetails.open = frameworks.length === 1;
-    frameDetails.createEl("summary", { text: `${framework.name} · v${framework.version}` });
+    frameDetails.createEl("summary", {
+      text: `${frameworkSourceLabel(framework.source)} · ${framework.name} · v${framework.version}`,
+    });
     const root = buildTargetTree(framework);
     const renderNode = (node: TargetTreeNode, parent: HTMLElement, level: number): void => {
       for (const goal of node.goals) {
-        const key = targetKey(framework.id, goal.id);
+        const key = targetKey(framework, goal.id);
+        const existing = selected.get(key);
         const label = parent.createEl("label", { cls: "la-target-choice" });
         label.style.paddingLeft = `${Math.max(level - 1, 0) * 14 + 4}px`;
         const checkbox = label.createEl("input", { type: "checkbox" });
-        checkbox.checked = selected.has(key);
+        checkbox.checked = Boolean(existing);
+        const levelSelect = label.createEl("select", { cls: "la-target-level" });
+        levelSelect.createEl("option", { text: "期望 level", value: "" });
+        for (const frameworkLevel of framework.levels) {
+          const option = levelSelect.createEl("option", {
+            text: frameworkLevel.label,
+            value: frameworkLevel.key,
+          });
+          option.selected = existing?.expectedLevel === frameworkLevel.key;
+        }
+        levelSelect.disabled = !checkbox.checked;
+        levelSelect.onchange = () => {
+          const target = selected.get(key);
+          if (target) target.expectedLevel = levelSelect.value || undefined;
+        };
         checkbox.onchange = () => {
-          if (checkbox.checked) selected.set(key, targetRefFor(framework, goal));
-          else selected.delete(key);
+          if (checkbox.checked) {
+            const target = targetRefFor(framework, goal);
+            target.expectedLevel = levelSelect.value || undefined;
+            selected.set(key, target);
+          } else {
+            selected.delete(key);
+          }
+          levelSelect.disabled = !checkbox.checked;
         };
         label.createSpan({ text: `${goal.id} ${goal.title}` });
         label.createSpan({ cls: "la-target-path", text: goal.path || goal.title });
@@ -126,6 +158,130 @@ function renderTargetTree(
   }
 }
 
+function renderCustomTargets(container: HTMLElement, selected: Map<string, TargetRef>): void {
+  const box = container.createDiv({ cls: "la-custom-targets" });
+  const refresh = (): void => {
+    box.empty();
+    box.createDiv({ cls: "la-choice-title", text: "其他目标（不来自框架）" });
+    const existing = [...selected.values()].filter((target) => target.kind === "custom");
+    for (const target of existing) {
+      const row = box.createDiv({ cls: "la-custom-target-row" });
+      row.createSpan({ text: target.title });
+      if (target.expectedLevelText) {
+        row.createSpan({ cls: "la-target-path", text: `期望：${target.expectedLevelText}` });
+      }
+      const remove = row.createEl("button", { text: "移除", cls: "la-custom-remove" });
+      remove.onclick = () => {
+        selected.delete(`custom::${target.goalId}`);
+        refresh();
+      };
+    }
+    const title = box.createEl("input", {
+      type: "text",
+      placeholder: "其他目标，例如：完成一次社区访谈",
+      cls: "la-custom-title",
+    });
+    const expected = box.createEl("input", {
+      type: "text",
+      placeholder: "期望（可选，文字）",
+      cls: "la-custom-expected",
+    });
+    const add = box.createEl("button", { text: "添加其他目标", cls: "la-custom-add" });
+    add.onclick = () => {
+      const value = title.value.trim();
+      if (!value) return;
+      const id = `custom_${hashString(value).slice(0, 10)}`;
+      const key = `custom::${id}`;
+      if (selected.has(key)) return;
+      selected.set(key, {
+        kind: "custom",
+        frameworkId: "",
+        frameworkName: "",
+        frameworkVersion: "",
+        goalId: id,
+        path: "",
+        title: value,
+        expectedLevelText: expected.value.trim() || undefined,
+      });
+      refresh();
+    };
+  };
+  refresh();
+}
+
+function renderActionTargets(
+  container: HTMLElement,
+  baseTargets: TargetRef[],
+  selected: Map<string, TargetRef>,
+): void {
+  const retainedCustom = [...selected.values()].filter((target) => target.kind === "custom");
+  selected.clear();
+  for (const target of baseTargets) {
+    const key = target.kind === "custom"
+      ? `custom::${target.goalId}`
+      : `${target.source ?? "tenant"}::${target.frameworkId}::${target.goalId}`;
+    selected.set(key, { ...target, inheritedFrom: "project" });
+  }
+  for (const target of retainedCustom) selected.set(`custom::${target.goalId}`, target);
+
+  container.empty();
+  const title = container.createDiv({ cls: "la-choice-title", text: "行动目标（继承项目）" });
+  title.setAttr("data-la", "action-targets");
+  if (!baseTargets.length) {
+    container.createEl("p", {
+      cls: "la-hint",
+      text: "当前项目没有已设置的目标；可先给项目添加目标，或在下方录入其他目标。",
+    });
+  }
+  for (const target of baseTargets) {
+    const key = target.kind === "custom"
+      ? `custom::${target.goalId}`
+      : `${target.source ?? "tenant"}::${target.frameworkId}::${target.goalId}`;
+    const label = container.createEl("label", { cls: "la-target-choice" });
+    const checkbox = label.createEl("input", { type: "checkbox" });
+    checkbox.checked = true;
+    checkbox.onchange = () => {
+      if (checkbox.checked) selected.set(key, { ...target, inheritedFrom: "project" });
+      else selected.delete(key);
+    };
+    label.createSpan({
+      text: target.kind === "custom"
+        ? `其他：${target.title}`
+        : `${target.goalId} ${target.title}`,
+    });
+    if (target.kind === "custom") {
+      if (target.expectedLevelText) label.createSpan({ cls: "la-target-path", text: target.expectedLevelText });
+    } else {
+      label.createSpan({
+        cls: "la-target-path",
+        text: `期望 ${target.expectedLevel ?? "未设定"}（继承，只读）`,
+      });
+    }
+  }
+  renderCustomTargets(container, selected);
+}
+
+function refTargetKey(target: TargetRef): string {
+  return target.kind === "custom"
+    ? `custom::${target.goalId}`
+    : `${target.source ?? "tenant"}::${target.frameworkId}::${target.goalId}`;
+}
+
+function frameworkForTarget(
+  frameworks: FrameworkDefinition[],
+  target: TargetRef,
+): FrameworkDefinition | undefined {
+  return frameworks.find(
+    (framework) =>
+      framework.id === target.frameworkId && (framework.source ?? "tenant") === (target.source ?? "tenant"),
+  );
+}
+
+function levelIndex(framework: FrameworkDefinition, value: string | undefined): number {
+  if (!value) return -1;
+  return framework.levels.findIndex((level) => level.key === value || level.label === value);
+}
+
 export class NewActivityModal extends Modal {
   private input: NewActivityInput;
   private selectedStudents = new Set<string>();
@@ -135,6 +291,9 @@ export class NewActivityModal extends Modal {
   private newParticipants = "";
   private newGoals = "";
   private sequenceSelect: HTMLSelectElement | null = null;
+  private targetBox: HTMLElement | null = null;
+  private gapBox: HTMLElement | null = null;
+  private studentTargets: Record<string, StudentTargetOverride[]> = {};
 
   constructor(
     app: App,
@@ -233,6 +392,7 @@ export class NewActivityModal extends Modal {
         dropdown.setValue(this.input.series).onChange((value) => {
           this.input.series = value;
           this.updateSequence();
+          this.renderActionTargets();
         });
       });
 
@@ -259,6 +419,7 @@ export class NewActivityModal extends Modal {
       checkbox.addEventListener("change", () => {
         if (checkbox.checked) this.selectedGroups.add(group.name);
         else this.selectedGroups.delete(group.name);
+        void this.renderStudentGaps();
       });
       label.createSpan({ text: `${group.name}（${group.members.length} 人）` });
     }
@@ -275,6 +436,7 @@ export class NewActivityModal extends Modal {
       checkbox.addEventListener("change", () => {
         if (checkbox.checked) this.selectedStudents.add(student);
         else this.selectedStudents.delete(student);
+        void this.renderStudentGaps();
       });
       label.createSpan({ text: student });
     }
@@ -285,6 +447,7 @@ export class NewActivityModal extends Modal {
       .addTextArea((area) => {
         area.setPlaceholder("张三、李四").onChange((value) => {
           this.newParticipants = value;
+          void this.renderStudentGaps();
         });
         area.inputEl.rows = 2;
       });
@@ -316,12 +479,8 @@ export class NewActivityModal extends Modal {
       });
 
     const targetBox = contentEl.createDiv({ cls: "la-choice la-target-picker" });
-    targetBox.createDiv({ cls: "la-choice-title", text: "发展目标（多框架、多级目录）" });
-    targetBox.createEl("p", {
-      cls: "la-hint",
-      text: "按框架 → 目录逐级展开，选择本次行动要评估的具体目标；不选则继承项目目标。",
-    });
-    renderTargetTree(targetBox, this.options.frameworks, this.selectedTargets);
+    this.targetBox = targetBox;
+    this.renderActionTargets();
 
     new Setting(contentEl)
       .addButton((button) => button.setButtonText("取消").onClick(() => this.close()))
@@ -336,6 +495,84 @@ export class NewActivityModal extends Modal {
     hint.setText(
       "创建后：素材放进 素材/，导师复盘放进 观察/，再运行「扫描素材」和「AI 整理素材」。\n得到录音可以点「同步得到」，按录音时间与内容自动匹配。",
     );
+  }
+
+  private renderActionTargets(): void {
+    if (!this.targetBox) return;
+    const base = this.input.series === "暂不归属" ? [] : this.options.seriesTargets[this.input.series] ?? [];
+    renderActionTargets(this.targetBox, base, this.selectedTargets);
+    void this.renderStudentGaps();
+  }
+
+  private async renderStudentGaps(): Promise<void> {
+    if (!this.gapBox) return;
+    const box = this.gapBox;
+    box.empty();
+    box.createDiv({ cls: "la-choice-title", text: "学生目标差距" });
+    const groupMembers = this.options.groups
+      .filter((group) => this.selectedGroups.has(group.name))
+      .flatMap((group) => group.members);
+    const participants = Array.from(
+      new Set([
+        ...this.selectedStudents,
+        ...groupMembers,
+        ...parseParticipants(this.newParticipants),
+      ]),
+    );
+    if (!participants.length) {
+      box.createEl("p", { cls: "la-hint", text: "选择参与学生后，会显示当前 level 与期望 level 的差距。" });
+      return;
+    }
+    const frameworkTargets = [...this.selectedTargets.values()].filter(
+      (target) => target.kind !== "custom" && Boolean(target.expectedLevel),
+    );
+    if (!frameworkTargets.length) {
+      box.createEl("p", { cls: "la-hint", text: "还没有带期望 level 的框架目标。" });
+      return;
+    }
+    for (const student of participants) {
+      const profile = await readProfile(this.app, this.options.settings, student);
+      for (const target of frameworkTargets) {
+        const framework = frameworkForTarget(this.options.frameworks, target);
+        if (!framework) continue;
+        const expectedIndex = levelIndex(framework, target.expectedLevel);
+        if (expectedIndex < 0) continue;
+        const current = profile.levels.find(
+          (item) =>
+            item.frameworkId === target.frameworkId &&
+            (item.goal === target.title || item.goal.includes(target.title) || target.title.includes(item.goal)),
+        );
+        if (!current) {
+          const row = box.createDiv({ cls: "la-gap-row la-gap-missing" });
+          row.createSpan({ text: `${student} · ${target.title}：暂无基线，待观察` });
+          continue;
+        }
+        const currentIndex = levelIndex(framework, current.level);
+        if (currentIndex < 0) continue;
+        const difference = expectedIndex - currentIndex;
+        if (difference < 2) continue;
+        const row = box.createDiv({ cls: "la-gap-row" });
+        row.createSpan({
+          text: `${student} · ${target.title}：当前 ${current.level} → 期望 ${target.expectedLevel}，差 ${difference} 级`,
+        });
+        const select = row.createEl("select", { cls: "la-target-level" });
+        select.createEl("option", { text: "保持基础", value: "" });
+        for (const level of framework.levels) {
+          const option = select.createEl("option", { text: level.label, value: level.key });
+          const existing = (this.studentTargets[student] ?? []).find(
+            (item) => item.targetKey === refTargetKey(target),
+          );
+          option.selected = existing?.expectedLevel === level.key;
+        }
+        select.onchange = () => {
+          const key = refTargetKey(target);
+          const rows = (this.studentTargets[student] ?? []).filter((item) => item.targetKey !== key);
+          if (select.value) rows.push({ targetKey: key, expectedLevel: select.value });
+          if (rows.length) this.studentTargets[student] = rows;
+          else delete this.studentTargets[student];
+        };
+      }
+    }
   }
 
   private submit(): void {
@@ -357,7 +594,9 @@ export class NewActivityModal extends Modal {
       new Notice("至少选一个参与学员或小组。");
       return;
     }
-    const targetLabels = [...this.selectedTargets.values()].map((target) => `${target.path}（${target.goalId}）`);
+    const targetLabels = [...this.selectedTargets.values()].map((target) =>
+      target.kind === "custom" ? target.title : `${target.path}（${target.goalId}）`,
+    );
     const inheritedGoals = this.input.series === "暂不归属" ? [] : this.options.seriesGoals[this.input.series] ?? [];
     const goals = Array.from(new Set([...this.selectedGoals, ...parseGoals(this.newGoals), ...inheritedGoals, ...targetLabels]));
     if (!goals.length) {
@@ -365,6 +604,7 @@ export class NewActivityModal extends Modal {
       return;
     }
     this.input.targets = [...this.selectedTargets.values()];
+    this.input.student_targets = this.studentTargets;
     this.input.participantsText = participants.join("、");
     this.input.goalsText = goals.join("\n");
     this.input.groups = [...this.selectedGroups];
@@ -492,6 +732,7 @@ export class NewSeriesModal extends Modal {
       text: "项目目标可来自多份框架；行动默认继承，也可以在行动里缩小。",
     });
     renderTargetTree(targetBox, this.frameworks, this.selectedTargets);
+    renderCustomTargets(targetBox, this.selectedTargets);
 
     new Setting(contentEl)
       .setName("简介")
@@ -527,18 +768,35 @@ export class NewSeriesModal extends Modal {
               new Notice("至少选择一个素养发展目标。");
               return;
             }
+            const missingLevel = [...this.selectedTargets.values()].find(
+              (target) => target.kind !== "custom" && !target.expectedLevel,
+            );
+            if (missingLevel) {
+              new Notice(`请为 ${missingLevel.goalId} ${missingLevel.title} 选择期望 level。`);
+              return;
+            }
             this.close();
             const refs: FrameworkRef[] = [];
-            if (this.primaryFrameworkId) refs.push({ id: this.primaryFrameworkId, role: "primary" });
+            if (this.primaryFrameworkId) {
+              const primary = this.frameworks.find((framework) => framework.id === this.primaryFrameworkId);
+              refs.push({ id: this.primaryFrameworkId, role: "primary", source: primary?.source });
+            }
             for (const id of this.supplementary) {
-              if (id !== this.primaryFrameworkId) refs.push({ id, role: "supplementary" });
+              if (id !== this.primaryFrameworkId) {
+                const framework = this.frameworks.find((item) => item.id === id);
+                refs.push({ id, role: "supplementary", source: framework?.source });
+              }
             }
             for (const target of this.selectedTargets.values()) {
               if (!refs.some((ref) => ref.id === target.frameworkId)) {
-                refs.push({ id: target.frameworkId, role: "supplementary" });
+                if (target.frameworkId) {
+                  refs.push({ id: target.frameworkId, role: "supplementary", source: target.source });
+                }
               }
             }
-            const targetLabels = [...this.selectedTargets.values()].map((target) => `${target.path}（${target.goalId}）`);
+            const targetLabels = [...this.selectedTargets.values()].map((target) =>
+      target.kind === "custom" ? target.title : `${target.path}（${target.goalId}）`,
+    );
             const goalsText = [this.input.goalsText, ...targetLabels].filter(Boolean).join("\n");
             this.onSubmit({ ...this.input, title: this.input.title.trim(), framework_refs: refs, targets: [...this.selectedTargets.values()], goalsText });
           }),
@@ -988,6 +1246,89 @@ export class StageReportModal extends Modal {
             }
             this.close();
             this.onSubmit(this.student, this.period);
+          }),
+      );
+  }
+
+  onClose(): void {
+    this.contentEl.empty();
+  }
+}
+
+
+export class PlanFileSuggestModal extends FuzzySuggestModal<TFile> {
+  constructor(
+    app: App,
+    private readonly onChoose: (file: TFile) => void,
+  ) {
+    super(app);
+    this.setPlaceholder("选择标准计划 Markdown");
+  }
+
+  getItems(): TFile[] {
+    return this.app.vault.getMarkdownFiles();
+  }
+
+  getItemText(file: TFile): string {
+    return file.path;
+  }
+
+  onChooseItem(file: TFile): void {
+    this.onChoose(file);
+  }
+}
+
+export class PlanImportPreviewModal extends Modal {
+  constructor(
+    app: App,
+    private readonly plan: ParsedPlan,
+    private readonly targets: TargetRef[],
+    private readonly errors: string[],
+    private readonly onConfirm: () => Promise<void>,
+  ) {
+    super(app);
+  }
+
+  onOpen(): void {
+    this.titleEl.setText("导入计划预览");
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("p", {
+      cls: "setting-item-description",
+      text: "确认将创建的内容。导入后以 Obsidian 笔记为工作副本，源文件不会自动同步。",
+    });
+    contentEl.createEl("h3", { text: this.plan.kind === "project" ? "项目" : "行动" });
+    contentEl.createEl("p", { text: `标题：${this.plan.title || "（未填写）"}` });
+    if (this.plan.project) contentEl.createEl("p", { text: `所属项目：${this.plan.project}` });
+    if (this.plan.mentor) contentEl.createEl("p", { text: `导师：${this.plan.mentor}` });
+    if (this.plan.date) contentEl.createEl("p", { text: `日期：${this.plan.date}` });
+    contentEl.createEl("h3", { text: `目标（${this.targets.length}）` });
+    for (const target of this.targets) {
+      const text = target.kind === "custom"
+        ? `其他目标：${target.title}${target.expectedLevelText ? `（期望：${target.expectedLevelText}）` : ""}`
+        : `${target.goalId} ${target.title}｜期望 ${target.expectedLevel ?? "未设定"}｜${target.source ?? "tenant"}`;
+      contentEl.createEl("p", { cls: "la-hint", text });
+    }
+    if (this.errors.length) {
+      contentEl.createEl("h3", { text: "校验问题" });
+      for (const error of this.errors) contentEl.createEl("p", { cls: "la-error", text: error });
+    }
+    new Setting(contentEl)
+      .addButton((button) => button.setButtonText("取消").onClick(() => this.close()))
+      .addButton((button) =>
+        button
+          .setButtonText("确认导入")
+          .setCta()
+          .setDisabled(this.errors.length > 0)
+          .onClick(async () => {
+            button.setDisabled(true);
+            try {
+              await this.onConfirm();
+              this.close();
+            } catch (error) {
+              new Notice(error instanceof Error ? error.message : String(error), 9000);
+              button.setDisabled(false);
+            }
           }),
       );
   }

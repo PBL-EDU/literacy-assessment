@@ -17,7 +17,7 @@ process.on("exit", () => {
   }
 });
 
-for (const file of ["types.ts", "core.ts", "prompt.ts", "report.ts", "http.ts", "ocr.ts", "asr.ts"]) {
+for (const file of ["types.ts", "core.ts", "targets.ts", "plan.ts", "prompt.ts", "report.ts", "http.ts", "ocr.ts", "asr.ts"]) {
   const source = fs.readFileSync(path.join(root, "src", file), "utf8");
   const out = ts.transpileModule(source, {
     fileName: file,
@@ -33,6 +33,8 @@ for (const file of ["types.ts", "core.ts", "prompt.ts", "report.ts", "http.ts", 
 
 const core = require(path.join(outDir, "core.js"));
 const prompt = require(path.join(outDir, "prompt.js"));
+const targets = require(path.join(outDir, "targets.js"));
+const plan = require(path.join(outDir, "plan.js"));
 const report = require(path.join(outDir, "report.js"));
 const ocr = require(path.join(outDir, "ocr.js"));
 const asr = require(path.join(outDir, "asr.js"));
@@ -556,6 +558,51 @@ test("renderActivityReport 写入结构化目标", () => {
   const md = report.renderActivityReport(a);
   ok(md.includes("targets:"), "缺 targets");
   ok(md.includes("path: \"一级/二级\""), "缺目标路径");
+});
+
+test("标准计划 Markdown 解析框架目标和自定义目标", () => {
+  const source = `---
+type: literacy-action-plan
+plan_id: plan-demo
+title: 测试行动
+project: 测试项目
+mentor: 林老师
+date: 2026-11-28
+---
+
+## 目标
+
+| 类型 | 来源 | 框架ID | 目标ID | 目标 | 路径 | 期望level |
+| --- | --- | --- | --- | --- | --- | --- |
+| framework | team | fw-team | G-1 | 目标一 | 一级/目标一 | L2 |
+| custom |  |  |  | 完成访谈 |  | 完成一次访谈 |
+`;
+  const parsed = plan.parsePlanMarkdown(source);
+  expect(parsed.kind, "action");
+  expect(parsed.planId, "plan-demo");
+  expect(parsed.targets.length, 2);
+  expect(parsed.targets[0].source, "team");
+  expect(parsed.targets[0].expectedLevel, "L2");
+  expect(parsed.targets[1].kind, "custom");
+  expect(parsed.errors, []);
+});
+
+test("目标支持期望 level、来源和自定义目标", () => {
+  const parsed = core.normalizeTargets([
+    { kind: "framework", source: "team", frameworkId: "fw", goalId: "g1", path: "一级/目标", title: "目标", expectedLevel: "L2" },
+    { kind: "custom", id: "custom-1", title: "完成访谈", expectedLevelText: "完成一次" },
+  ]);
+  expect(parsed.length, 2);
+  expect(parsed[0].source, "team");
+  expect(parsed[0].expectedLevel, "L2");
+  expect(parsed[1].kind, "custom");
+  expect(parsed[1].title, "完成访谈");
+});
+
+test("target YAML 写出来源和期望 level", () => {
+  const yaml = targets.targetYamlLines({ kind: "framework", source: "tenant", frameworkId: "f", frameworkName: "框架", frameworkVersion: "1", goalId: "g", path: "一级/目标", title: "目标", expectedLevel: "L3" });
+  ok(yaml.join("\n").includes("expectedLevel: L3"));
+  ok(yaml.join("\n").includes("source: tenant"));
 });
 
 /* ---------------- DeepSeek 官方接口 ---------------- */
