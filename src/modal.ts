@@ -1252,9 +1252,10 @@ export class PlanFileSuggestModal extends FuzzySuggestModal<TFile> {
   constructor(
     app: App,
     private readonly onChoose: (file: TFile) => void,
+    placeholder = "选择标准计划 Markdown",
   ) {
     super(app);
-    this.setPlaceholder("选择标准计划 Markdown");
+    this.setPlaceholder(placeholder);
   }
 
   getItems(): TFile[] {

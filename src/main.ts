@@ -53,6 +53,7 @@ import {
 import { testConnection } from "./ai";
 import { canOcrFile } from "./ocr";
 import { listFrameworks } from "./framework";
+import { FrameworkDiagnosticsModal, frameworkDiagnostics, importFrameworkMarkdown } from "./frameworkLibrary";
 import { parsePlanMarkdown, resolvePlanTargets } from "./plan";
 import { ensureLiteracyProfile } from "./profile";
 import { installBundleFromVault } from "./frameworkBundle";
@@ -579,6 +580,27 @@ export default class LiteracyAssessmentPlugin extends Plugin {
     const installed = await installBundleFromVault(this.app, this.settings, path);
     this.refreshViews();
     return installed;
+  }
+
+  openFrameworkDiagnostics(): void {
+    void frameworkDiagnostics(this.app, this.settings)
+      .then((items) => new FrameworkDiagnosticsModal(this.app, items).open())
+      .catch((error) => new Notice(error instanceof Error ? error.message : String(error), 9000));
+  }
+
+  openImportFramework(): void {
+    new PlanFileSuggestModal(this.app, (file) => {
+      void (async () => {
+        try {
+          const framework = await importFrameworkMarkdown(this.app, this.settings, file.path);
+          new Notice(`已导入框架：${framework.name}（${framework.goals.length} 个目标）`);
+          this.openFrameworkDiagnostics();
+          this.refreshViews();
+        } catch (error) {
+          new Notice(error instanceof Error ? error.message : String(error), 9000);
+        }
+      })();
+    }, "选择素养框架 Markdown").open();
   }
 
   async openReview(record: ActivityRecord): Promise<void> {

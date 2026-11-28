@@ -91,6 +91,15 @@ export class LiteracySettingTab extends PluginSettingTab {
     });
     const frameworkBox = containerEl.createDiv({ cls: "la-framework-list" });
     void this.renderFrameworkList(frameworkBox);
+    new Setting(containerEl)
+      .setName("框架诊断")
+      .setDesc("查看每个框架实际解析到的目标数、层级路径和错误；目标树只显示文件里真实存在的目标。")
+      .addButton((button) =>
+        button.setButtonText("查看诊断").onClick(() => this.plugin.openFrameworkDiagnostics()),
+      )
+      .addButton((button) =>
+        button.setButtonText("导入 Markdown 框架").onClick(() => this.plugin.openImportFramework()),
+      );
     let bundlePath = "";
     new Setting(containerEl)
       .setName("导入组织框架 bundle")
@@ -550,7 +559,7 @@ export class LiteracySettingTab extends PluginSettingTab {
     new Setting(containerEl).setName("关于").setHeading();
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "素养评估 v0.6.5 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
+      text: "素养评估 v0.7.2 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
     });
     containerEl.createEl("p", {
       cls: "setting-item-description",

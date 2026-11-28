@@ -499,3 +499,10 @@
 
 .nav-folder:has(> .nav-folder-title[data-path*="00_框架/_"]),
 .tree-item:has(> .tree-item-self[data-path*="00_框架/_"]) { display: none !important; }
+
+.la-framework-diagnostics { display: flex; flex-direction: column; gap: 10px; }
+.la-framework-diagnostic { border: 1px solid var(--background-modifier-border); border-radius: 8px; padding: 10px 12px; }
+.la-framework-diagnostic h3 { margin: 0 0 6px; font-size: 1em; }
+.la-framework-diagnostic p { margin: 4px 0; }
+.la-framework-diagnostic .la-warning { color: var(--text-warning); }
+.la-framework-diagnostic details { margin-top: 6px; }
