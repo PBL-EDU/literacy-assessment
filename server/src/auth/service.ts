@@ -23,6 +23,8 @@ export interface MemberInfo {
   id: string;
   displayName: string;
   role: "teacher" | "mentor";
+  teamId?: string;
+  teamName?: string;
 }
 
 export interface AuthContext {
@@ -57,6 +59,8 @@ function memberFromRow(row: Record<string, unknown>): MemberInfo {
     id: String(row.member_id ?? row.id),
     displayName: String(row.display_name),
     role: row.role === "mentor" ? "mentor" : "teacher",
+    teamId: row.team_id ? String(row.team_id) : undefined,
+    teamName: row.team_name ? String(row.team_name) : undefined,
   };
 }
 
@@ -88,16 +92,34 @@ export async function redeemInvite(
     if (new Date(String(invite.expires_at)).getTime() <= Date.now()) throw new Error("邀请码已过期");
     if (Number(invite.used_count) >= Number(invite.max_uses)) throw new Error("邀请码已用完");
 
-    const memberId = randomUUID();
     const deviceId = randomUUID();
     const refreshToken = randomToken(32);
     const orgId = String(invite.org_id);
-
-    await client.query(
-      `INSERT INTO members (id, org_id, display_name, role, status)
-       VALUES ($1, $2, $3, 'teacher', 'active')`,
-      [memberId, orgId, displayName],
-    );
+    const boundMemberId = invite.member_id ? String(invite.member_id) : "";
+    const teacherName = String(invite.teacher_name || displayName).trim() || displayName;
+    const teamId = invite.team_id ? String(invite.team_id) : undefined;
+    const teamName = invite.team_name ? String(invite.team_name) : undefined;
+    let memberId = boundMemberId;
+    if (boundMemberId) {
+      const existing = await client.query(
+        "SELECT id, status FROM members WHERE id = $1 AND org_id = $2 FOR UPDATE",
+        [boundMemberId, orgId],
+      );
+      if (!existing.rows[0] || existing.rows[0].status !== "active") {
+        throw new Error("教师记录已停用或不存在");
+      }
+      await client.query(
+        "UPDATE members SET display_name = $1, team_id = $2, team_name = $3, updated_at = now() WHERE id = $4",
+        [teacherName, teamId ?? null, teamName ?? null, memberId],
+      );
+    } else {
+      memberId = randomUUID();
+      await client.query(
+        `INSERT INTO members (id, org_id, display_name, role, status, team_id, team_name)
+         VALUES ($1, $2, $3, 'teacher', 'active', $4, $5)`,
+        [memberId, orgId, teacherName, teamId ?? null, teamName ?? null],
+      );
+    }
     await client.query(
       `INSERT INTO devices (id, member_id, name, refresh_token_hash, last_seen_at)
        VALUES ($1, $2, $3, $4, now())`,
@@ -105,7 +127,7 @@ export async function redeemInvite(
     );
     await client.query("UPDATE invites SET used_count = used_count + 1 WHERE id = $1", [invite.id]);
 
-    const member: MemberInfo = { id: memberId, displayName, role: "teacher" };
+    const member: MemberInfo = { id: memberId, displayName: teacherName, role: "teacher", teamId, teamName };
     const org: OrgInfo = { id: orgId, name: String(invite.org_name), slug: String(invite.org_slug) };
     return {
       accessToken: accessTokenFor(member, orgId, deviceId, config),
@@ -127,6 +149,7 @@ export async function refreshSession(
     const result = await client.query(
       `SELECT d.id AS device_id, d.revoked_at,
               m.id AS member_id, m.display_name, m.role, m.status AS member_status,
+              m.team_id, m.team_name,
               o.id AS org_id, o.name AS org_name, o.slug AS org_slug, o.status AS org_status
        FROM devices d
        JOIN members m ON m.id = d.member_id
@@ -166,6 +189,7 @@ export async function authenticate(
   if (!payload) return null;
   const result = await db.query(
     `SELECT m.id AS member_id, m.display_name, m.role, m.status AS member_status,
+            m.team_id, m.team_name,
             d.id AS device_id, d.revoked_at,
             o.id AS org_id, o.name AS org_name, o.slug AS org_slug, o.status AS org_status
      FROM members m
@@ -272,16 +296,74 @@ export async function adminLogout(db: Db, sessionToken: string): Promise<void> {
 export async function createInvite(
   db: Db,
   admin: AdminContext,
-  input: { expiresInHours: number; maxUses: number },
-): Promise<{ code: string; expiresAt: Date }> {
+  input: { expiresInHours: number; maxUses: number; teacherId?: string; teacherName?: string; teamId?: string },
+): Promise<{ code: string; expiresAt: Date; teacherName: string; teamName: string }> {
+  let teacherName = (input.teacherName ?? "").trim();
+  let teamName = "";
+  let teamId = input.teamId || undefined;
+  if (input.teacherId) {
+    const member = await db.query(
+      "SELECT id, display_name, team_id, team_name FROM members WHERE id = $1 AND org_id = $2 AND status = 'active'",
+      [input.teacherId, admin.org.id],
+    );
+    const row = member.rows[0];
+    if (!row) throw new Error("教师记录不存在或已停用");
+    teacherName = String(row.display_name);
+    teamId = row.team_id ? String(row.team_id) : teamId;
+    teamName = row.team_name ? String(row.team_name) : "";
+  }
+  if (!teacherName) throw new Error("请先选择教师或填写教师姓名");
+  if (!teamId) throw new Error("请选择教师所属团队");
+  const team = await db.query(
+    "SELECT id, name FROM teams WHERE id = $1 AND org_id = $2 AND status = 'active'",
+    [teamId, admin.org.id],
+  );
+  if (!team.rows[0]) throw new Error("团队不存在或已停用");
+  teamName = String(team.rows[0].name);
   const code = randomCode(10);
   const expiresAt = new Date(Date.now() + input.expiresInHours * 60 * 60 * 1000);
   await db.query(
-    `INSERT INTO invites (id, org_id, code_hash, expires_at, max_uses, created_by)
-     VALUES ($1, $2, $3, $4, $5, $6)`,
-    [randomUUID(), admin.org.id, sha256(code), expiresAt, input.maxUses, admin.id],
+    `INSERT INTO invites (id, org_id, code_hash, expires_at, max_uses, created_by, teacher_name, team_id, team_name)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    [randomUUID(), admin.org.id, sha256(code), expiresAt, input.maxUses, admin.id, teacherName, teamId, teamName],
   );
-  return { code, expiresAt };
+  return { code, expiresAt, teacherName, teamName };
+}
+
+export async function createTeam(
+  db: Db,
+  admin: AdminContext,
+  name: string,
+): Promise<{ id: string; name: string }> {
+  const clean = name.trim();
+  if (!clean || clean.length > 80) throw new Error("团队名称不合法");
+  const id = randomUUID();
+  await db.query(
+    "INSERT INTO teams (id, org_id, name, status) VALUES ($1, $2, $3, 'active')",
+    [id, admin.org.id, clean],
+  );
+  return { id, name: clean };
+}
+
+export async function createTeacher(
+  db: Db,
+  admin: AdminContext,
+  input: { name: string; teamId: string; role?: string },
+): Promise<{ id: string; name: string; teamName: string }> {
+  const name = input.name.trim();
+  if (!name || name.length > 40) throw new Error("教师姓名不合法");
+  const team = await db.query(
+    "SELECT id, name FROM teams WHERE id = $1 AND org_id = $2 AND status = 'active'",
+    [input.teamId, admin.org.id],
+  );
+  if (!team.rows[0]) throw new Error("团队不存在或已停用");
+  const id = randomUUID();
+  await db.query(
+    `INSERT INTO members (id, org_id, display_name, role, status, team_id, team_name)
+     VALUES ($1, $2, $3, $4, 'active', $5, $6)`,
+    [id, admin.org.id, name, input.role === "mentor" ? "mentor" : "teacher", input.teamId, team.rows[0].name],
+  );
+  return { id, name, teamName: String(team.rows[0].name) };
 }
 
 function randomCode(length: number): string {

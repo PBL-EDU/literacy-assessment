@@ -22,6 +22,7 @@ test("SQL migrations create the organization schema", async () => {
     "members",
     "invites",
     "devices",
+    "teams",
     "framework_versions",
     "usage_events",
     "quota_periods",

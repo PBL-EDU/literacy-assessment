@@ -5,6 +5,7 @@ import { buildApp } from "../src/app.js";
 import { loadConfig } from "../src/config.js";
 import { runMigrations, type Db } from "../src/db/index.js";
 import { hashPassword, sha256 } from "../src/security/tokens.js";
+import { createInvite, createTeam, createTeacher, redeemInvite, type AdminContext } from "../src/auth/service.js";
 
 class PgliteDb {
   constructor(private readonly db: PGlite) {}
@@ -139,6 +140,28 @@ version: "1"
   });
   assert.equal(frameworks.statusCode, 200);
   assert.equal(frameworks.json<{ frameworks: unknown[] }>().frameworks.length, 2);
+
+  const adminContext: AdminContext = {
+    id: "admin1",
+    username: "admin",
+    org: { id: "org1", name: "白日梦行动", slug: "dream" },
+  };
+  const team = await createTeam(db, adminContext, "测试团队");
+  const teacher = await createTeacher(db, adminContext, { name: "绑定老师", teamId: team.id });
+  const invite = await createInvite(db, adminContext, {
+    expiresInHours: 1,
+    maxUses: 1,
+    teacherId: teacher.id,
+    teamId: team.id,
+  });
+  const bound = await redeemInvite(db, config, {
+    code: invite.code,
+    displayName: "错误的名字",
+    deviceName: "绑定设备",
+  });
+  assert.equal(bound.member.displayName, "绑定老师");
+  assert.equal(bound.member.teamName, "测试团队");
+  assert.equal(bound.member.teamId, team.id);
 
   await app.close();
   await db.end();
