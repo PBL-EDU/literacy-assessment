@@ -12,6 +12,7 @@ import { registerFrameworkRoutes } from "./routes/frameworks.js";
 import { registerGatewayRoutes } from "./routes/gateway.js";
 import { registerSettingsRoutes } from "./routes/settings.js";
 import { registerPriceRoutes } from "./routes/prices.js";
+import { registerStudentRoutes } from "./routes/students.js";
 
 export interface BuildOptions {
   config: AppConfig;
@@ -58,7 +59,7 @@ export async function buildApp({ config, db }: BuildOptions): Promise<FastifyIns
   app.get("/health", async (_request, reply) => {
     try {
       await db.query("SELECT 1");
-      return reply.send({ ok: true, service: "literacy-assessment-server", version: "0.8.1" });
+      return reply.send({ ok: true, service: "literacy-assessment-server", version: "0.9.0" });
     } catch {
       return reply.code(503).send({ ok: false, service: "literacy-assessment-server" });
     }
@@ -69,6 +70,7 @@ export async function buildApp({ config, db }: BuildOptions): Promise<FastifyIns
   await registerGatewayRoutes(app, db, config);
   await registerSettingsRoutes(app, db, config);
   await registerPriceRoutes(app, db, config);
+  await registerStudentRoutes(app, db, config);
 
   app.setErrorHandler((error: FastifyError, request, reply) => {
     const statusCode = typeof error.statusCode === "number" ? error.statusCode : 500;

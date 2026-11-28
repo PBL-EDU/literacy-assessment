@@ -8,6 +8,7 @@ import { hashPassword, sha256 } from "../src/security/tokens.js";
 import { authenticateAdmin, createInvite, createTeam, createTeacher, createTenant, createTenantAdmin, redeemInvite, switchAdminTenant, type AdminContext } from "../src/auth/service.js";
 import { adminLogin } from "../src/auth/service.js";
 import { listPublishedTeamFrameworks, publishTeamFrameworkForMember } from "../src/frameworks/service.js";
+import { listTeamStudentSummaries, syncStudentSummaries } from "../src/students/service.js";
 
 class PgliteDb {
   constructor(private readonly db: PGlite) {}
@@ -209,6 +210,16 @@ version: "1.0"
   const teamFrameworks = await listPublishedTeamFrameworks(db, "org1", team.id);
   assert.equal(teamFrameworks.length, 1);
   assert.equal(teamFrameworks[0].frameworkId, "team-dream");
+
+  await syncStudentSummaries(
+    db,
+    { org: { id: "org1" }, member: { id: bound.member.id, teamId: team.id } } as never,
+    [{ name: "小明", currentLevels: [{ goal: "CCD.3", level: "L3" }], activityCount: 2, evidenceCount: 3, summary: "能协作" }],
+  );
+  const studentRows = await listTeamStudentSummaries(db, "org1", team.id);
+  assert.equal(studentRows.length, 1);
+  assert.equal(studentRows[0].name, "小明");
+  assert.equal(studentRows[0].currentLevels[0].level, "L3");
 
   await app.close();
   await db.end();
