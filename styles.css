@@ -483,3 +483,6 @@
 .la-gap-panel { margin-top: 8px; border-top: 1px solid var(--background-modifier-border); padding-top: 6px; }
 .la-gap-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 3px 0; font-size: 11px; }
 .la-gap-missing { color: var(--text-muted); }
+
+.la-settings-content { display: block; width: 100%; flex-basis: 100%; margin-top: 8px; }
+.setting-item:has(.la-settings-content) { display: block; }

@@ -21,9 +21,9 @@ export class LiteracySettingTab extends PluginSettingTab {
         name: "素养评估设置",
         desc: "数据位置、框架、组织模式与 AI 服务",
         aliases: ["数据目录", "框架", "组织", "API Key", "OCR", "ASR", "模型", "DeepSeek"],
-        render: (_setting, group) => {
-          group.listEl.empty();
-          this.renderSettings(group.listEl);
+        render: (setting) => {
+          const host = setting.settingEl.createDiv({ cls: "la-settings-content" });
+          this.renderSettings(host);
         },
       },
     ];
@@ -109,7 +109,7 @@ export class LiteracySettingTab extends PluginSettingTab {
           try {
             const path = await this.plugin.importFrameworkBundle(bundlePath);
             new Notice(`组织框架已导入：${path}`);
-            this.display();
+            this.update();
           } catch (error) {
             new Notice(error instanceof Error ? error.message : String(error), 9000);
           }
@@ -170,7 +170,7 @@ export class LiteracySettingTab extends PluginSettingTab {
             try {
               await this.plugin.joinOrganization({ serverUrl, code: inviteCode, displayName, deviceName });
               new Notice("已加入组织，AI 调用将由组织统一结算。");
-              this.display();
+              this.update();
             } catch (error) {
               new Notice(error instanceof Error ? error.message : String(error), 9000);
             } finally {
@@ -185,14 +185,14 @@ export class LiteracySettingTab extends PluginSettingTab {
           .addButton((button) => button.setButtonText("重新连接").onClick(async () => {
             try {
               await this.plugin.reconnectOrganization();
-              this.display();
+              this.update();
             } catch (error) {
               new Notice(error instanceof Error ? error.message : String(error), 9000);
             }
           }))
           .addButton((button) => button.setButtonText("退出组织").onClick(async () => {
             await this.plugin.leaveOrganization();
-            this.display();
+            this.update();
           }));
       }
     }
@@ -247,7 +247,7 @@ export class LiteracySettingTab extends PluginSettingTab {
           settings.asrProvider = "deepseek";
           settings.asrBaseUrl = "https://api.deepseek.com/v1";
           await this.plugin.saveSettings();
-          this.display();
+          this.update();
         }),
       )
       .addButton((button) =>
@@ -255,7 +255,7 @@ export class LiteracySettingTab extends PluginSettingTab {
           settings.aiBaseUrl = "https://api.openai.com/v1";
           settings.aiModel = "gpt-4o-mini";
           await this.plugin.saveSettings();
-          this.display();
+          this.update();
         }),
       )
       .addButton((button) =>
@@ -264,7 +264,7 @@ export class LiteracySettingTab extends PluginSettingTab {
           settings.aiModel = "qwen2.5:7b";
           settings.aiApiKey = "ollama";
           await this.plugin.saveSettings();
-          this.display();
+          this.update();
         }),
       );
 
@@ -389,7 +389,7 @@ export class LiteracySettingTab extends PluginSettingTab {
           settings.asrBaseUrl = "https://api.deepseek.com/v1";
           settings.asrLanguage = "zh";
           await this.plugin.saveSettings();
-          this.display();
+          this.update();
         }),
       )
       .addButton((button) =>
@@ -399,7 +399,7 @@ export class LiteracySettingTab extends PluginSettingTab {
           settings.asrModel = "FunAudioLLM/SenseVoiceSmall";
           settings.asrLanguage = "zh";
           await this.plugin.saveSettings();
-          this.display();
+          this.update();
         }),
       )
       .addButton((button) =>
@@ -409,7 +409,7 @@ export class LiteracySettingTab extends PluginSettingTab {
           settings.asrModel = "whisper-1";
           settings.asrLanguage = "zh";
           await this.plugin.saveSettings();
-          this.display();
+          this.update();
         }),
       );
 
@@ -674,7 +674,7 @@ export class LiteracySettingTab extends PluginSettingTab {
     new Setting(containerEl).setName("关于").setHeading();
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "素养评估 v0.6.0 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
+      text: "素养评估 v0.6.1 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
     });
     containerEl.createEl("p", {
       cls: "setting-item-description",
