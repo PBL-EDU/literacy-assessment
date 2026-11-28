@@ -16,6 +16,7 @@ interface OrgState {
   memberName: string;
   teamName: string;
   memberId: string;
+  teamLead: boolean;
   accessToken: string;
   accessExpiresAt: number;
   error: string;
@@ -26,7 +27,7 @@ interface AuthBundle {
   refreshToken: string;
   expiresIn: number;
   org: { id: string; name: string; slug: string };
-  member: { id: string; displayName: string; role: string; teamId?: string; teamName?: string };
+  member: { id: string; displayName: string; role: string; teamId?: string; teamName?: string; isTeamLead?: boolean };
 }
 
 interface ChatOptions {
@@ -43,6 +44,7 @@ const state: OrgState = {
   memberName: "",
   teamName: "",
   memberId: "",
+  teamLead: false,
   accessToken: "",
   accessExpiresAt: 0,
   error: "",
@@ -81,6 +83,7 @@ function setActive(bundle: AuthBundle, settings: AssessmentSettings): void {
   state.memberName = bundle.member.displayName;
   state.teamName = bundle.member.teamName ?? "";
   state.memberId = bundle.member.id;
+  state.teamLead = Boolean(bundle.member.isTeamLead);
   state.accessToken = bundle.accessToken;
   state.accessExpiresAt = Date.now() + Math.max(30, bundle.expiresIn - 30) * 1000;
   state.error = "";
@@ -98,6 +101,7 @@ function clearSession(settings: AssessmentSettings, invalid: boolean): void {
   state.memberName = "";
   state.teamName = "";
   state.memberId = "";
+  state.teamLead = false;
   state.accessToken = "";
   state.accessExpiresAt = 0;
   state.error = invalid ? "组织会话已失效，请重新加入" : "";
@@ -115,6 +119,7 @@ export async function initOrgSession(settings: AssessmentSettings): Promise<void
   state.memberName = settings.orgMemberName;
   state.teamName = settings.orgTeamName;
   state.memberId = settings.orgMemberId;
+  state.teamLead = false;
   if (!settings.orgRefreshToken) {
     state.status = "none";
     return;
@@ -237,6 +242,40 @@ export async function orgGet(path: string): Promise<unknown> {
   const response = await authorizedRequest(path);
   if (response.status >= 400) throw new OrgHttpError(response.status, response.text);
   return JSON.parse(response.text);
+}
+
+export async function orgTeamFrameworks(): Promise<Array<{
+  frameworkId: string;
+  name: string;
+  version: string;
+  hash: string;
+  markdown: string;
+  teamId: string;
+  teamName: string;
+}>> {
+  const data = (await orgGet("/api/team-frameworks")) as {
+    frameworks?: Array<Record<string, unknown>>;
+    teamLead?: boolean;
+  };
+  if (data.teamLead) state.teamLead = true;
+  return (data.frameworks ?? []).map((raw) => ({
+    frameworkId: String(raw.frameworkId ?? ""),
+    name: String(raw.name ?? ""),
+    version: String(raw.version ?? ""),
+    hash: String(raw.hash ?? ""),
+    markdown: String(raw.markdown ?? ""),
+    teamId: String(raw.teamId ?? ""),
+    teamName: String(raw.teamName ?? ""),
+  }));
+}
+
+export async function orgPublishTeamFramework(markdown: string): Promise<void> {
+  const response = await authorizedRequest("/api/team-frameworks", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ markdown }),
+  });
+  if (response.status >= 400) throw new OrgHttpError(response.status, response.text);
 }
 
 export async function orgChat(

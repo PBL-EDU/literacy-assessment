@@ -52,12 +52,12 @@ import {
 } from "./modal";
 import { testConnection } from "./ai";
 import { canOcrFile } from "./ocr";
-import { listFrameworks, syncOrganizationFrameworks as syncOrgFrameworks } from "./framework";
+import { listFrameworks, syncOrganizationFrameworks as syncOrgFrameworks, syncTeamFrameworks } from "./framework";
 import { FrameworkDiagnosticsModal, frameworkDiagnostics, importFrameworkMarkdown } from "./frameworkLibrary";
 import { parsePlanMarkdown, resolvePlanTargets } from "./plan";
 import { ensureLiteracyProfile } from "./profile";
 import { installBundleFromVault } from "./frameworkBundle";
-import { configureOrgClient, initOrgSession, joinOrganization, leaveOrganization, orgStatus, refreshOrgSession } from "./org";
+import { configureOrgClient, initOrgSession, joinOrganization, leaveOrganization, orgPublishTeamFramework, orgStatus, refreshOrgSession } from "./org";
 import { writeMentorProfile } from "./mentorProfile";
 import { approveReport, isApproved, readReview, requestChanges } from "./review";
 import { PendingReviewsModal, ReviewModal, type PendingReviewItem } from "./reviewModal";
@@ -89,6 +89,7 @@ export default class LiteracyAssessmentPlugin extends Plugin {
       await writeMentorProfile(this.app, this.settings);
       if (this.organizationStatus().status === "active") {
         await syncOrgFrameworks(this.app, this.settings).catch(() => []);
+        await syncTeamFrameworks(this.app, this.settings).catch(() => []);
       }
       this.refreshViews();
     });
@@ -559,7 +560,8 @@ export default class LiteracyAssessmentPlugin extends Plugin {
     await joinOrganization(this.settings, input);
     await writeMentorProfile(this.app, this.settings);
     const frameworks = await syncOrgFrameworks(this.app, this.settings).catch(() => []);
-    new Notice(`已加入组织：${this.settings.orgName}；已同步 ${frameworks.length} 份组织框架`);
+    const teamFrameworks = await syncTeamFrameworks(this.app, this.settings).catch(() => []);
+    new Notice(`已加入组织：${this.settings.orgName}；组织框架 ${frameworks.length} 份，团队框架 ${teamFrameworks.length} 份`);
     this.refreshViews();
   }
 
@@ -573,7 +575,8 @@ export default class LiteracyAssessmentPlugin extends Plugin {
     await refreshOrgSession();
     await writeMentorProfile(this.app, this.settings);
     const frameworks = await syncOrgFrameworks(this.app, this.settings).catch(() => []);
-    new Notice(`组织连接正常：${this.settings.orgName}；已同步 ${frameworks.length} 份组织框架`);
+    const teamFrameworks = await syncTeamFrameworks(this.app, this.settings).catch(() => []);
+    new Notice(`组织连接正常：${this.settings.orgName}；组织框架 ${frameworks.length} 份，团队框架 ${teamFrameworks.length} 份`);
     this.refreshViews();
   }
 
@@ -583,8 +586,31 @@ export default class LiteracyAssessmentPlugin extends Plugin {
 
   async syncOrganizationFrameworks(): Promise<void> {
     const frameworks = await syncOrgFrameworks(this.app, this.settings);
-    new Notice(frameworks.length ? `已同步 ${frameworks.length} 份组织框架` : "组织还没有发布框架");
+    const teamFrameworks = await syncTeamFrameworks(this.app, this.settings).catch(() => []);
+    new Notice(frameworks.length || teamFrameworks.length
+      ? `组织框架 ${frameworks.length} 份，团队框架 ${teamFrameworks.length} 份`
+      : "组织/团队还没有发布框架");
     this.refreshViews();
+  }
+
+  openPublishTeamFramework(): void {
+    if (!this.organizationStatus().teamLead) {
+      new Notice("只有团队负责人可以发布团队框架。", 8000);
+      return;
+    }
+    new PlanFileSuggestModal(this.app, (file) => {
+      void (async () => {
+        try {
+          const markdown = await readText(this.app, file.path);
+          await orgPublishTeamFramework(markdown);
+          const synced = await syncTeamFrameworks(this.app, this.settings).catch(() => []);
+          new Notice(`团队框架已发布；当前团队框架 ${synced.length} 份`);
+          this.refreshViews();
+        } catch (error) {
+          new Notice(error instanceof Error ? error.message : String(error), 9000);
+        }
+      })();
+    }, "选择要发布的团队框架 Markdown").open();
   }
 
   async importFrameworkBundle(path: string): Promise<string> {

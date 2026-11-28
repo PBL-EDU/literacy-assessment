@@ -18,7 +18,7 @@ import type {
 } from "./types";
 import { sanitizeName, splitFrontmatter, stemOf } from "./core";
 import { ensureFolder } from "./vault";
-import { orgActive, orgFrameworks } from "./org";
+import { orgActive, orgFrameworks, orgTeamFrameworks } from "./org";
 
 export const FRAMEWORK_FOLDER = "00_框架";
 export const TENANT_FRAMEWORK_FOLDER = "_租户";
@@ -206,6 +206,39 @@ export async function syncOrganizationFrameworks(
   return result;
 }
 
+export async function syncTeamFrameworks(
+  app: App,
+  settings: AssessmentSettings,
+): Promise<FrameworkDefinition[]> {
+  if (!orgActive()) return [];
+  const remote = await orgTeamFrameworks();
+  const cacheRoot = `${frameworkRoot(settings)}/${TEAM_FRAMEWORK_FOLDER}/cache`;
+  await ensureFolder(app, cacheRoot);
+  const result: FrameworkDefinition[] = [];
+  for (const item of remote) {
+    const parsed = parseFrameworkText(`org-team://${item.teamId}/${item.frameworkId}`, item.markdown);
+    const framework: FrameworkDefinition = {
+      ...parsed,
+      id: item.frameworkId || parsed.id,
+      name: item.name || parsed.name,
+      version: item.version || parsed.version,
+      hash: item.hash || parsed.hash,
+      status: "active",
+      source: "team" as const,
+    };
+    try {
+      await app.vault.adapter.write(
+        normalizePath(`${cacheRoot}/${sanitizeName(framework.id)}.md`),
+        item.markdown,
+      );
+    } catch {
+      /* 缓存写入失败不影响本次使用 */
+    }
+    result.push(framework);
+  }
+  return result;
+}
+
 export async function listFrameworks(app: App, settings: AssessmentSettings): Promise<FrameworkDefinition[]> {
   const out: FrameworkDefinition[] = [];
   if (orgActive()) {
@@ -213,6 +246,11 @@ export async function listFrameworks(app: App, settings: AssessmentSettings): Pr
       out.push(...(await syncOrganizationFrameworks(app, settings)));
     } catch {
       // 组织网关暂时不可用时使用本地缓存/文件，避免整个侧栏无法工作。
+    }
+    try {
+      out.push(...(await syncTeamFrameworks(app, settings)));
+    } catch {
+      // 团队框架同步失败时继续使用本地框架。
     }
   }
   for (const path of frameworkFiles(app, settings)) {

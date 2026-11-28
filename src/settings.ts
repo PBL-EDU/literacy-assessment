@@ -131,7 +131,7 @@ export class LiteracySettingTab extends PluginSettingTab {
       const org = this.plugin.organizationStatus();
       const labels: Record<string, string> = {
         none: "未加入组织：使用个人 DeepSeek API",
-        active: `已加入：${settings.orgName}${settings.orgTeamName ? ` · ${settings.orgTeamName}` : ""} · ${settings.orgMemberName}`,
+        active: `已加入：${settings.orgName}${settings.orgTeamName ? ` · ${settings.orgTeamName}` : ""} · ${settings.orgMemberName}${org.teamLead ? "（团队负责人）" : ""}`,
         offline: "组织服务暂时不可用；不会自动改用个人 API",
         invalid: "组织会话已失效，请重新加入",
       };
@@ -154,6 +154,12 @@ export class LiteracySettingTab extends PluginSettingTab {
               button.setDisabled(false);
             }
           }),
+        )
+        .addButton((button) =>
+          button
+            .setButtonText(org.teamLead ? "发布团队框架" : "团队负责人可发布")
+            .setDisabled(!org.teamLead)
+            .onClick(() => this.plugin.openPublishTeamFramework()),
         );
       if (settings.orgTeamName) {
         containerEl.createEl("p", {
@@ -463,7 +469,7 @@ export class LiteracySettingTab extends PluginSettingTab {
     new Setting(containerEl).setName("关于").setHeading();
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "素养评估 v0.7.4 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
+      text: "素养评估 v0.8.0 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
     });
     containerEl.createEl("p", {
       cls: "setting-item-description",
