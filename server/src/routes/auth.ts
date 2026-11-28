@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { AppConfig } from "../config.js";
 import type { Db } from "../db/index.js";
 import { requireMember } from "../auth/http.js";
-import { adminLogout, adminLogin, createInvite, createTeam, createTeacher, redeemInvite, refreshSession, revokeDevice, type AdminContext } from "../auth/service.js";
+import { adminLogout, adminLogin, assignTeacherTeam, createInvite, createTeam, createTeacher, redeemInvite, refreshSession, revokeDevice, type AdminContext } from "../auth/service.js";
 import { adminPage, escapeHtml } from "../http/html.js";
 import { optionalAdmin, requireAdmin } from "../auth/http.js";
 
@@ -240,14 +240,14 @@ export async function registerAuthRoutes(app: FastifyInstance, db: Db, config: A
     const [teams, teachers] = await Promise.all([
       db.query("SELECT id, name FROM teams WHERE org_id = $1 AND status = 'active' ORDER BY name", [admin.org.id]),
       db.query(
-        `SELECT m.display_name, m.role, m.status, m.team_name, count(d.id) FILTER (WHERE d.revoked_at IS NULL)::int AS devices
+        `SELECT m.id, m.display_name, m.role, m.status, m.team_name, count(d.id) FILTER (WHERE d.revoked_at IS NULL)::int AS devices
          FROM members m LEFT JOIN devices d ON d.member_id = m.id
          WHERE m.org_id = $1 GROUP BY m.id ORDER BY m.team_name NULLS LAST, m.display_name`,
         [admin.org.id],
       ),
     ]);
     const teamOptions = teams.rows.map((row) => `<option value="${escapeHtml(row.id)}">${escapeHtml(row.name)}</option>`).join("");
-    const rows = teachers.rows.map((row) => `<tr><td>${escapeHtml(row.display_name)}</td><td>${escapeHtml(row.team_name ?? "—")}</td><td>${escapeHtml(row.role)}</td><td>${escapeHtml(row.status)}</td><td>${row.devices}</td></tr>`).join("");
+    const rows = teachers.rows.map((row) => `<tr><td>${escapeHtml(row.display_name)}</td><td>${escapeHtml(row.team_name ?? "—")}</td><td>${escapeHtml(row.role)}</td><td>${escapeHtml(row.status)}</td><td>${row.devices}</td><td><form method="post" action="/admin/teachers/team" style="display:flex;gap:4px"><input type="hidden" name="memberId" value="${escapeHtml(row.id)}"><select name="teamId">${teamOptions}</select><button type="submit">分配</button></form></td></tr>`).join("");
     return reply.type("text/html").send(adminPage(
       "教师",
       `<div class="card"><h1>教师</h1><p><a href="/admin">返回总览</a> · <a href="/admin/teams">团队</a> · <a href="/admin/invites">邀请码</a></p>
@@ -255,7 +255,7 @@ export async function registerAuthRoutes(app: FastifyInstance, db: Db, config: A
        <label>所属团队</label><select name="teamId" required>${teamOptions}</select>
        <label>角色</label><select name="role"><option value="teacher">教师</option><option value="mentor">导师</option></select>
        <p><button type="submit">创建教师</button></p></form>` : `<p class="muted">请先创建团队。</p>`}
-       <table><tr><th>姓名</th><th>团队</th><th>角色</th><th>状态</th><th>设备</th></tr>${rows || "<tr><td colspan='5'>还没有教师。</td></tr>"}</table></div>`,
+       <table><tr><th>姓名</th><th>团队</th><th>角色</th><th>状态</th><th>设备</th><th>分配团队</th></tr>${rows || "<tr><td colspan='6'>还没有教师。</td></tr>"}</table></div>`,
       admin.username,
     ));
   });
@@ -268,6 +268,19 @@ export async function registerAuthRoutes(app: FastifyInstance, db: Db, config: A
       await createTeacher(db, admin, input.data);
     } catch (error) {
       return reply.code(400).type("text/html").send(adminPage("创建失败", `<div class="card"><p class="error">${escapeHtml(error instanceof Error ? error.message : String(error))}</p></div>`, admin.username));
+    }
+    return reply.redirect("/admin/teachers");
+  });
+
+  app.post("/admin/teachers/team", async (request, reply) => {
+    const admin = await requireAdmin(db, request);
+    const body = (request.body ?? {}) as Record<string, unknown>;
+    const memberId = typeof body.memberId === "string" ? body.memberId : "";
+    const teamId = typeof body.teamId === "string" ? body.teamId : "";
+    try {
+      await assignTeacherTeam(db, admin, memberId, teamId);
+    } catch (error) {
+      return reply.code(400).type("text/html").send(adminPage("分配团队失败", `<div class="card"><p class="error">${escapeHtml(error instanceof Error ? error.message : String(error))}</p></div>`, admin.username));
     }
     return reply.redirect("/admin/teachers");
   });

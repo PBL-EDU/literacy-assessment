@@ -376,6 +376,24 @@ function randomCode(length: number): string {
   return result;
 }
 
+export async function assignTeacherTeam(
+  db: Db,
+  admin: AdminContext,
+  memberId: string,
+  teamId: string,
+): Promise<void> {
+  const team = await db.query(
+    "SELECT id, name FROM teams WHERE id = $1 AND org_id = $2 AND status = 'active'",
+    [teamId, admin.org.id],
+  );
+  if (!team.rows[0]) throw new Error("团队不存在或已停用");
+  const result = await db.query(
+    "UPDATE members SET team_id = $1, team_name = $2, updated_at = now() WHERE id = $3 AND org_id = $4",
+    [teamId, String(team.rows[0].name), memberId, admin.org.id],
+  );
+  if (result.rowCount !== 1) throw new Error("教师不存在");
+}
+
 export async function createMemberAndDeviceForTest(
   db: Db,
   config: AppConfig,
