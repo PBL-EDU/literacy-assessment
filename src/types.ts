@@ -187,6 +187,7 @@ export interface AssessmentSettings {
   orgMemberName: string;
   orgTeamName: string;
   orgMemberId: string;
+  studentSyncEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: AssessmentSettings = {
@@ -233,6 +234,7 @@ export const DEFAULT_SETTINGS: AssessmentSettings = {
   orgName: "",
   orgId: "",
   orgMemberName: "",
+  studentSyncEnabled: false,
   orgTeamName: "",
   orgMemberId: "",
 };

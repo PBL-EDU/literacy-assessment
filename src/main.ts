@@ -59,6 +59,7 @@ import { ensureLiteracyProfile } from "./profile";
 import { installBundleFromVault } from "./frameworkBundle";
 import { configureOrgClient, initOrgSession, joinOrganization, leaveOrganization, orgPublishTeamFramework, orgStatus, refreshOrgSession } from "./org";
 import { writeMentorProfile } from "./mentorProfile";
+import { openStudentDirectory, syncStudentSummariesToOrg } from "./studentDirectory";
 import { approveReport, isApproved, readReview, requestChanges } from "./review";
 import { PendingReviewsModal, ReviewModal, type PendingReviewItem } from "./reviewModal";
 import { writeExternalReport } from "./external";
@@ -611,6 +612,27 @@ export default class LiteracyAssessmentPlugin extends Plugin {
         }
       })();
     }, "选择要发布的团队框架 Markdown").open();
+  }
+
+  async syncStudentSummaries(): Promise<void> {
+    if (!this.settings.studentSyncEnabled) {
+      new Notice("先在设置中开启「同步同学结构化摘要」。", 8000);
+      return;
+    }
+    try {
+      const count = await syncStudentSummariesToOrg(this.app, this.settings);
+      new Notice(`已同步 ${count} 名同学的结构化摘要`);
+    } catch (error) {
+      new Notice(error instanceof Error ? error.message : String(error), 9000);
+    }
+  }
+
+  async showStudentDirectory(): Promise<void> {
+    try {
+      await openStudentDirectory(this.app);
+    } catch (error) {
+      new Notice(error instanceof Error ? error.message : String(error), 9000);
+    }
   }
 
   async importFrameworkBundle(path: string): Promise<string> {

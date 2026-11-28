@@ -506,3 +506,8 @@
 .la-framework-diagnostic p { margin: 4px 0; }
 .la-framework-diagnostic .la-warning { color: var(--text-warning); }
 .la-framework-diagnostic details { margin-top: 6px; }
+
+.la-student-directory { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.la-student-card { border: 1px solid var(--background-modifier-border); border-radius: 8px; padding: 10px 12px; }
+.la-student-card h3 { margin: 0 0 6px; font-size: 1em; }
+.la-student-card p { margin: 4px 0; white-space: pre-wrap; }

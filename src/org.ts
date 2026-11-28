@@ -244,6 +244,52 @@ export async function orgGet(path: string): Promise<unknown> {
   return JSON.parse(response.text);
 }
 
+export interface OrgStudentSummaryRow {
+  id: string;
+  name: string;
+  teamName: string;
+  memberName: string;
+  currentLevels: Array<{ goal: string; level: string; frameworkName?: string }>;
+  activityCount: number;
+  evidenceCount: number;
+  lastActivityAt: string | null;
+  summary: string;
+}
+
+export async function orgStudentSummaries(): Promise<{ students: OrgStudentSummaryRow[]; teamName: string }> {
+  const data = (await orgGet("/api/students")) as { students?: Array<Record<string, unknown>>; teamName?: string };
+  return {
+    teamName: String(data.teamName ?? ""),
+    students: (data.students ?? []).map((raw) => ({
+      id: String(raw.id ?? ""),
+      name: String(raw.name ?? ""),
+      teamName: String(raw.teamName ?? ""),
+      memberName: String(raw.memberName ?? ""),
+      currentLevels: Array.isArray(raw.currentLevels)
+        ? raw.currentLevels.map((item) => {
+            const level = (item ?? {}) as Record<string, unknown>;
+            return { goal: String(level.goal ?? ""), level: String(level.level ?? ""), frameworkName: level.frameworkName ? String(level.frameworkName) : undefined };
+          })
+        : [],
+      activityCount: Number(raw.activityCount) || 0,
+      evidenceCount: Number(raw.evidenceCount) || 0,
+      lastActivityAt: raw.lastActivityAt ? String(raw.lastActivityAt) : null,
+      summary: String(raw.summary ?? ""),
+    })),
+  };
+}
+
+export async function orgSyncStudentSummaries(students: unknown[]): Promise<{ synced: number }> {
+  const response = await authorizedRequest("/api/students/sync", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ students }),
+  });
+  if (response.status >= 400) throw new OrgHttpError(response.status, response.text);
+  const data = JSON.parse(response.text) as { synced?: number };
+  return { synced: Number(data.synced) || 0 };
+}
+
 export async function orgTeamFrameworks(): Promise<Array<{
   frameworkId: string;
   name: string;

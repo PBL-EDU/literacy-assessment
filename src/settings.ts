@@ -161,6 +161,21 @@ export class LiteracySettingTab extends PluginSettingTab {
             .setDisabled(!org.teamLead)
             .onClick(() => this.plugin.openPublishTeamFramework()),
         );
+      new Setting(containerEl)
+        .setName("同学结构化摘要")
+        .setDesc("只同步姓名、团队、当前 level、参与行动数、结构化证据数和摘要；不上传录音、照片、原始素材或报告正文。默认关闭。")
+        .addToggle((toggle) =>
+          toggle.setValue(settings.studentSyncEnabled).onChange(async (value) => {
+            settings.studentSyncEnabled = value;
+            await this.plugin.saveSettings();
+          }),
+        )
+        .addButton((button) =>
+          button.setButtonText("立即同步").onClick(() => void this.plugin.syncStudentSummaries()),
+        )
+        .addButton((button) =>
+          button.setButtonText("查看团队汇总").onClick(() => void this.plugin.showStudentDirectory()),
+        );
       if (settings.orgTeamName) {
         containerEl.createEl("p", {
           cls: "setting-item-description",
@@ -469,7 +484,7 @@ export class LiteracySettingTab extends PluginSettingTab {
     new Setting(containerEl).setName("关于").setHeading();
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "素养评估 v0.8.0 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
+      text: "素养评估 v0.9.0 · 本地优先。素材与报告归导师保管；公开分享前请单独取得监护人同意并做脱敏。",
     });
     containerEl.createEl("p", {
       cls: "setting-item-description",
