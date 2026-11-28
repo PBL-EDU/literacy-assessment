@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { AppConfig } from "../config.js";
 import type { Db } from "../db/index.js";
 import { requireMember } from "../auth/http.js";
-import { adminLogout, adminLogin, assignTeamLead, assignTeacherTeam, createInvite, createTeam, createTeacher, createTenant, createTenantAdmin, redeemInvite, refreshSession, resetTenantAdminPassword, revokeDevice, setTenantAdminStatus, switchAdminTenant, type AdminContext } from "../auth/service.js";
+import { adminLogout, adminLogin, assignTeamLead, assignTeacherTeam, createInvite, createTeam, createTeacher, createTenant, createTenantAdmin, redeemInvite, refreshSession, resetTenantAdminPassword, revokeDevice, revokeMemberDevices, setTenantAdminStatus, switchAdminTenant, updateTeacher, updateTeam, type AdminContext } from "../auth/service.js";
 import { adminPage, escapeHtml } from "../http/html.js";
 import { optionalAdmin, requireAdmin, requirePlatformAdmin } from "../auth/http.js";
 
@@ -44,6 +44,19 @@ const teacherSchema = z.object({
   name: z.string().min(1).max(40),
   teamId: z.string().min(1),
   role: z.enum(["teacher", "mentor"]).default("teacher"),
+});
+
+const teamUpdateSchema = z.object({
+  teamId: z.string().min(1),
+  name: z.string().min(1).max(80),
+  status: z.enum(["active", "disabled"]),
+});
+
+const teacherUpdateSchema = z.object({
+  memberId: z.string().min(1),
+  name: z.string().min(1).max(40),
+  status: z.enum(["active", "disabled"]),
+  teamId: z.string().optional().default(""),
 });
 
 export async function registerAuthRoutes(app: FastifyInstance, db: Db, config: AppConfig): Promise<void> {
@@ -184,7 +197,7 @@ export async function registerAuthRoutes(app: FastifyInstance, db: Db, config: A
       adminPage(
         "导师",
         `<div class="card"><h1>导师</h1><p><a href="/admin">返回总览</a> · <a href="/admin/invites">邀请导师</a></p>
-        <table><tr><th>姓名</th><th>团队</th><th>角色</th><th>状态</th><th>有效设备</th><th>加入时间</th></tr>${rows || "<tr><td colspan='6'>还没有导师。</td></tr>"}</table></div>`,
+       <table><tr><th>姓名</th><th>团队</th><th>角色</th><th>状态</th><th>设备</th><th>编辑/设备</th></tr>${rows || "<tr><td colspan='6'>还没有导师。</td></tr>"}</table></div>`,
         admin.username,
       ),
     );
@@ -232,13 +245,13 @@ export async function registerAuthRoutes(app: FastifyInstance, db: Db, config: A
       const options = [`<option value="">未指定</option>`]
         .concat(memberRows.filter((m) => String(m.team_id) === String(row.id)).map((m) => `<option value="${escapeHtml(m.id)}"${String(m.id) === String(row.lead_member_id) ? " selected" : ""}>${escapeHtml(m.display_name)}</option>`))
         .join("");
-      return `<tr><td>${escapeHtml(row.name)}</td><td>${escapeHtml(lead ? lead.display_name : "未指定")}</td><td>${escapeHtml(row.status)}</td><td>${new Date(row.created_at).toLocaleDateString("zh-CN")}</td><td><form method="post" action="/admin/teams/lead" style="display:flex;gap:4px"><input type="hidden" name="teamId" value="${escapeHtml(row.id)}"><select name="memberId">${options}</select><button type="submit">保存负责人</button></form></td></tr>`;
+      return `<tr><td>${escapeHtml(row.name)}</td><td>${escapeHtml(lead ? lead.display_name : "未指定")}</td><td>${escapeHtml(row.status)}</td><td>${new Date(row.created_at).toLocaleDateString("zh-CN")}</td><td><form method="post" action="/admin/teams/lead" style="display:flex;gap:4px"><input type="hidden" name="teamId" value="${escapeHtml(row.id)}"><select name="memberId">${options}</select><button type="submit">保存负责人</button></form><form method="post" action="/admin/teams/update" style="display:flex;gap:4px;margin-top:4px"><input type="hidden" name="teamId" value="${escapeHtml(row.id)}"><input name="name" value="${escapeHtml(row.name)}" maxlength="80" required><select name="status"><option value="active"${row.status === "active" ? " selected" : ""}>启用</option><option value="disabled"${row.status === "disabled" ? " selected" : ""}>停用</option></select><button type="submit">保存团队</button></form></td></tr>`;
     }).join("");
     return reply.type("text/html").send(adminPage(
       "团队",
       `<div class="card"><h1>团队</h1><p><a href="/admin">返回总览</a> · <a href="/admin/teachers">导师</a></p>
        <form method="post" action="/admin/teams"><label>团队名称</label><input name="name" maxlength="80" required><p><button type="submit">添加团队</button></p></form>
-       <table><tr><th>名称</th><th>负责人</th><th>状态</th><th>创建时间</th><th>设置负责人</th></tr>${rows || "<tr><td colspan='5'>还没有团队。</td></tr>"}</table></div>`,
+       <table><tr><th>名称</th><th>负责人</th><th>状态</th><th>创建时间</th><th>操作</th></tr>${rows || "<tr><td colspan='5'>还没有团队。</td></tr>"}</table></div>`,
       admin.username,
     ));
   });
@@ -305,7 +318,7 @@ export async function registerAuthRoutes(app: FastifyInstance, db: Db, config: A
       ),
     ]);
     const teamOptions = teams.rows.map((row) => `<option value="${escapeHtml(row.id)}">${escapeHtml(row.name)}</option>`).join("");
-    const rows = teachers.rows.map((row) => `<tr><td>${escapeHtml(row.display_name)}</td><td>${escapeHtml(row.team_name ?? "—")}</td><td>${escapeHtml(row.role)}</td><td>${escapeHtml(row.status)}</td><td>${row.devices}</td><td><form method="post" action="/admin/teachers/team" style="display:flex;gap:4px"><input type="hidden" name="memberId" value="${escapeHtml(row.id)}"><select name="teamId">${teamOptions}</select><button type="submit">分配</button></form></td></tr>`).join("");
+    const rows = teachers.rows.map((row) => `<tr><td>${escapeHtml(row.display_name)}</td><td>${escapeHtml(row.team_name ?? "—")}</td><td>${escapeHtml(row.role)}</td><td>${escapeHtml(row.status)}</td><td>${row.devices}</td><td><form method="post" action="/admin/teachers/update" style="display:flex;flex-wrap:wrap;gap:4px"><input type="hidden" name="memberId" value="${escapeHtml(row.id)}"><input name="name" value="${escapeHtml(row.display_name)}" maxlength="40" required><select name="teamId"><option value="">未分团队</option>${teamOptions}</select><select name="status"><option value="active"${row.status === "active" ? " selected" : ""}>启用</option><option value="disabled"${row.status === "disabled" ? " selected" : ""}>停用</option></select><button type="submit">保存</button></form><form method="post" action="/admin/teachers/revoke" style="margin-top:4px"><input type="hidden" name="memberId" value="${escapeHtml(row.id)}"><button type="submit">吊销设备</button></form></td></tr>`).join("");
     return reply.type("text/html").send(adminPage(
       "导师",
       `<div class="card"><h1>导师</h1><p><a href="/admin">返回总览</a> · <a href="/admin/teams">团队</a> · <a href="/admin/invites">邀请码</a></p>
@@ -313,7 +326,7 @@ export async function registerAuthRoutes(app: FastifyInstance, db: Db, config: A
        <label>所属团队</label><select name="teamId" required>${teamOptions}</select>
        <label>角色</label><select name="role"><option value="teacher">导师</option><option value="mentor">导师</option></select>
        <p><button type="submit">创建导师</button></p></form>` : `<p class="muted">请先创建团队。</p>`}
-       <table><tr><th>姓名</th><th>团队</th><th>角色</th><th>状态</th><th>设备</th><th>分配团队</th></tr>${rows || "<tr><td colspan='6'>还没有导师。</td></tr>"}</table></div>`,
+       <table><tr><th>姓名</th><th>团队</th><th>角色</th><th>状态</th><th>设备</th><th>编辑/设备</th></tr>${rows || "<tr><td colspan='6'>还没有导师。</td></tr>"}</table></div>`,
       admin.username,
     ));
   });
@@ -453,6 +466,45 @@ export async function registerAuthRoutes(app: FastifyInstance, db: Db, config: A
       return reply.code(400).type("text/html").send(adminPage("更新管理员失败", `<div class="card"><p class="error">${escapeHtml(error instanceof Error ? error.message : String(error))}</p></div>`, admin.username));
     }
     return reply.redirect(`/admin/tenants/${tenantId}/admins`);
+  });
+
+  app.post("/admin/teams/update", async (request, reply) => {
+    const admin = await requireAdmin(db, request);
+    const input = teamUpdateSchema.safeParse(request.body ?? {});
+    if (!input.success) return reply.code(400).type("text/html").send(adminPage("参数错误", `<div class="card"><p class="error">团队参数不合法。</p></div>`, admin.username));
+    try {
+      await updateTeam(db, admin, input.data.teamId, { name: input.data.name, status: input.data.status });
+    } catch (error) {
+      return reply.code(400).type("text/html").send(adminPage("更新团队失败", `<div class="card"><p class="error">${escapeHtml(error instanceof Error ? error.message : String(error))}</p></div>`, admin.username));
+    }
+    return reply.redirect("/admin/teams");
+  });
+
+  app.post("/admin/teachers/update", async (request, reply) => {
+    const admin = await requireAdmin(db, request);
+    const input = teacherUpdateSchema.safeParse(request.body ?? {});
+    if (!input.success) return reply.code(400).type("text/html").send(adminPage("参数错误", `<div class="card"><p class="error">导师参数不合法。</p></div>`, admin.username));
+    try {
+      await updateTeacher(db, admin, input.data.memberId, {
+        name: input.data.name,
+        status: input.data.status,
+        teamId: input.data.teamId || "",
+      });
+    } catch (error) {
+      return reply.code(400).type("text/html").send(adminPage("更新导师失败", `<div class="card"><p class="error">${escapeHtml(error instanceof Error ? error.message : String(error))}</p></div>`, admin.username));
+    }
+    return reply.redirect("/admin/teachers");
+  });
+
+  app.post("/admin/teachers/revoke", async (request, reply) => {
+    const admin = await requireAdmin(db, request);
+    const body = (request.body ?? {}) as Record<string, unknown>;
+    try {
+      await revokeMemberDevices(db, admin, String(body.memberId ?? ""));
+    } catch (error) {
+      return reply.code(400).type("text/html").send(adminPage("吊销设备失败", `<div class="card"><p class="error">${escapeHtml(error instanceof Error ? error.message : String(error))}</p></div>`, admin.username));
+    }
+    return reply.redirect("/admin/teachers");
   });
 
   app.get("/admin/login-check", async (request, reply) => {

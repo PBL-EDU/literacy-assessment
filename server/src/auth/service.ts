@@ -161,10 +161,12 @@ export async function refreshSession(
       `SELECT d.id AS device_id, d.revoked_at,
               m.id AS member_id, m.display_name, m.role, m.status AS member_status,
               m.team_id, m.team_name,
-              EXISTS (SELECT 1 FROM teams t WHERE t.id = m.team_id AND t.lead_member_id = m.id) AS is_team_lead,
+              t.status AS team_status,
+              EXISTS (SELECT 1 FROM teams t2 WHERE t2.id = m.team_id AND t2.lead_member_id = m.id) AS is_team_lead,
               o.id AS org_id, o.name AS org_name, o.slug AS org_slug, o.status AS org_status
        FROM devices d
        JOIN members m ON m.id = d.member_id
+       LEFT JOIN teams t ON t.id = m.team_id
        JOIN organizations o ON o.id = m.org_id
        WHERE d.refresh_token_hash = $1
        LIMIT 1
@@ -202,17 +204,20 @@ export async function authenticate(
   const result = await db.query(
     `SELECT m.id AS member_id, m.display_name, m.role, m.status AS member_status,
             m.team_id, m.team_name,
-            EXISTS (SELECT 1 FROM teams t WHERE t.id = m.team_id AND t.lead_member_id = m.id) AS is_team_lead,
+            t.status AS team_status,
+            EXISTS (SELECT 1 FROM teams t2 WHERE t2.id = m.team_id AND t2.lead_member_id = m.id) AS is_team_lead,
             d.id AS device_id, d.revoked_at,
             o.id AS org_id, o.name AS org_name, o.slug AS org_slug, o.status AS org_status
      FROM members m
      JOIN devices d ON d.id = $2 AND d.member_id = m.id
+     LEFT JOIN teams t ON t.id = m.team_id
      JOIN organizations o ON o.id = m.org_id
      WHERE m.id = $1`,
     [payload.sub, payload.dev],
   );
   const row = result.rows[0] as Record<string, unknown> | undefined;
   if (!row || row.revoked_at || row.member_status !== "active" || row.org_status !== "active") return null;
+  if (row.team_id && row.team_status !== "active") return null;
   return {
     org: { id: String(row.org_id), name: String(row.org_name), slug: String(row.org_slug) },
     member: memberFromRow(row),
@@ -569,6 +574,68 @@ export async function setTenantAdminStatus(
     [status, adminId, tenantId],
   );
   if (result.rowCount !== 1) throw new Error("租户管理员不存在");
+}
+
+export async function updateTeam(
+  db: Db,
+  admin: AdminContext,
+  teamId: string,
+  input: { name?: string; status?: "active" | "disabled" },
+): Promise<void> {
+  const team = await db.query("SELECT id FROM teams WHERE id = $1 AND org_id = $2", [teamId, admin.org.id]);
+  if (!team.rows[0]) throw new Error("团队不存在");
+  const name = input.name?.trim();
+  if (name !== undefined && (!name || name.length > 80)) throw new Error("团队名称不合法");
+  await db.query(
+    `UPDATE teams SET name = COALESCE($1, name), status = COALESCE($2, status), updated_at = now()
+     WHERE id = $3 AND org_id = $4`,
+    [name ?? null, input.status ?? null, teamId, admin.org.id],
+  );
+}
+
+export async function updateTeacher(
+  db: Db,
+  admin: AdminContext,
+  memberId: string,
+  input: { name?: string; status?: "active" | "disabled"; teamId?: string },
+): Promise<void> {
+  const member = await db.query(
+    "SELECT id FROM members WHERE id = $1 AND org_id = $2",
+    [memberId, admin.org.id],
+  );
+  if (!member.rows[0]) throw new Error("导师不存在");
+  const name = input.name?.trim();
+  if (name !== undefined && (!name || name.length > 40)) throw new Error("导师姓名不合法");
+  let teamName: string | null | undefined;
+  if (input.teamId !== undefined) {
+    if (input.teamId) {
+      const team = await db.query(
+        "SELECT name FROM teams WHERE id = $1 AND org_id = $2 AND status = 'active'",
+        [input.teamId, admin.org.id],
+      );
+      if (!team.rows[0]) throw new Error("团队不存在或已停用");
+      teamName = String(team.rows[0].name);
+    } else {
+      teamName = null;
+    }
+  }
+  await db.query(
+    `UPDATE members SET display_name = COALESCE($1, display_name),
+       status = COALESCE($2, status),
+       team_id = CASE WHEN $3::boolean THEN $4 ELSE team_id END,
+       team_name = CASE WHEN $3::boolean THEN $5 ELSE team_name END,
+       updated_at = now()
+     WHERE id = $6 AND org_id = $7`,
+    [name ?? null, input.status ?? null, input.teamId !== undefined, input.teamId || null, teamName ?? null, memberId, admin.org.id],
+  );
+}
+
+export async function revokeMemberDevices(db: Db, admin: AdminContext, memberId: string): Promise<void> {
+  const result = await db.query(
+    "UPDATE devices SET revoked_at = now() WHERE member_id = $1 AND member_id IN (SELECT id FROM members WHERE org_id = $2)",
+    [memberId, admin.org.id],
+  );
+  if (result.rowCount === 0) throw new Error("没有可吊销的设备");
 }
 
 export async function createMemberAndDeviceForTest(
